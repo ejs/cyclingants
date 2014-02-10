@@ -62,6 +62,16 @@ class RouteSection:
         return hypot(self.stop[0]-lat, self.stop[1]-lon)
 
 
+class ACOEdge:
+    __slots__ = ["next_id", "cost", "interest", "pheremones"]
+
+    def __init__(self, nid, cost, interest):
+        self.next_id = nid
+        self.cost = cost
+        self.interest = interest
+        self.pheremones = 0
+
+
 class OSMHandler(ContentHandler):
     def __init__(self):
         self.node = None
@@ -101,7 +111,6 @@ class OSMHandler(ContentHandler):
         elif name == 'way':
             self.way['nodes'] = self.nds
             self.way['tags'] = self.tags
-            # TODO: expand this using info from Map Features
             if travelable_route(self.way, self.tags):
                 self.ways.append(self.way)
             self.nds = []
@@ -126,12 +135,12 @@ class OSMHandler(ContentHandler):
                     continue
                 if middle.intersection:
                     interest = start.interest + middle.interest
-                    self.graph[start.nid].append((middle.nid, start.cost_to(*middle.start), interest, 0))
-                    self.graph[middle.nid].append((start.nid, middle.cost_to(*start.stop), interest, 0))
+                    self.graph[start.nid].append(ACOEdge(middle.nid, start.cost_to(*middle.start), interest))
+                    self.graph[middle.nid].append(ACOEdge(start.nid, middle.cost_to(*start.stop), interest))
                 elif end:
                     interest = start.interest + middle.interest + end.interest
-                    self.graph[start.nid].append((end.nid, start.cost_to(*middle.start)+middle.cost_out+end.cost_from(*middle.stop), interest, 0))
-                    self.graph[end.nid].append((start.nid, end.cost_to(*middle.stop)+middle.cost_back+start.cost_from(*middle.start), interest, 0))
+                    self.graph[start.nid].append(ACOEdge(end.nid, start.cost_to(*middle.start)+middle.cost_out+end.cost_from(*middle.stop), interest))
+                    self.graph[end.nid].append(ACOEdge(start.nid, end.cost_to(*middle.stop)+middle.cost_back+start.cost_from(*middle.start), interest))
 
 
 def load_file(filename):
