@@ -24,8 +24,11 @@ class Node:
         self.nid = int(nid)
 
     def how_interesting(self, tags):
-        # TODO: make this actually do something useful using info from Map Features
-        self.interest = 1
+        # TODO: refine these more
+        if any(t in tags for t in ('historic', 'leisure', 'natural', 'tourism', 'amenity')):
+            self.interest = 1
+        elif tags.get('building') in ('hotel', 'cathedral', 'chapel', 'church', 'university'):
+            self.interest = 1
 
     def cost_to(self, next_node):
         if next_node:

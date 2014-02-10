@@ -18,6 +18,7 @@ class TestLoading(unittest.TestCase):
         print("Way size", total_size(res[1][:100]))
         print("Graph size", total_size(res[2]))
         print(Counter(len(b) for b in res[2].values()))
+        print(max(sum(r.interest for r in w['nodes']) for w in res[1]))
 
     def test_loading_with_geograhic_restriction(self):
         pass
