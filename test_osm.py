@@ -1,15 +1,23 @@
+#! /usr/bin/python3
 from collections import Counter
+import xml.sax as sax
 import osm
 import unittest
 
 
 class TestLoading(unittest.TestCase):
     def test_loading(self):
-        res = osm.load_file('south-yorkshire-latest.osm')
+        osmhandler = osm.OSMHandler()
+        parser = sax.make_parser()
+        parser.setContentHandler(osmhandler)
+        parser.parse('south-yorkshire-latest.osm')
+        res = osmhandler.nodes, osmhandler.ways, osmhandler.graph
         self.assertEqual(len(res[0]), 1076738)
-        self.assertEqual(len(res[1]), 53911)
+        self.assertEqual(len(res[1]), 10164)
         print("Node size", total_size(res[0]))
         print("Way size", total_size(res[1][:100]))
+        print("Graph size", total_size(res[2]))
+        print(Counter(len(b) for b in res[2].values()))
 
     def test_loading_with_geograhic_restriction(self):
         pass
