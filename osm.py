@@ -1,3 +1,4 @@
+#! /usr/bin/python3
 from collections import defaultdict, Counter
 import itertools
 from math import hypot
