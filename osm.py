@@ -90,7 +90,6 @@ class OSMHandler(ContentHandler):
         self.way = None
         self.ways = []
         self.nodes = {}
-        self.seen = set()
         self.tags = {}
         self.nds = []
         self.flag = True
@@ -109,9 +108,6 @@ class OSMHandler(ContentHandler):
             self.tags = {}
         elif name == 'nd':
             self.nds.append(int(attributes['ref']))
-        elif name not in self.seen:
-            print(name, dict(attributes))
-            self.seen.add(name)
 
     def endElement(self, name):
         if name == 'node':
