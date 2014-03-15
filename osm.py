@@ -199,9 +199,12 @@ if __name__ == '__main__':
     parser.setContentHandler(osmhandler)
     parser.parse('south-yorkshire-latest.osm')
     res = osmhandler.nodes, osmhandler.ways, osmhandler.graph
-    print("Node size", total_size(res[0]))
-    print("Way size", total_size(res[1][:100]))
-    print("Graph size", total_size(res[2]))
+    print("Node size {0:,d}kb".format(total_size(res[0])//1024))
+    print("Way size {0:,d}kb".format(total_size(res[1][:100])//1024))
+    print("Graph size {0:,d}kb".format(total_size(res[2])//1024))
+
+    print("Graph nodes", len(res[2]))
+    print("Graph edges", sum(len(b) for b in res[2].values()))
     print("Graph stats", Counter(len(b) for b in res[2].values()))
     print("Most interesting block", max(sum(r.interest for r in w['nodes']) for w in res[1]))
     print("Rest points ", sum(1 for r in res[1] for n in r['nodes'] if n.rest))
