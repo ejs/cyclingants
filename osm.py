@@ -4,6 +4,8 @@ from math import hypot
 import xml.sax as sax
 from xml.sax.handler import ContentHandler
 
+from sizing import total_size
+
 
 def travelable_route(way, tags):
     if tags.get('visible', 'true') == 'false':
@@ -153,3 +155,18 @@ def load_file(filename):
         parser.setContentHandler(osmhandler)
         parser.parse(source)
         return osmhandler.graph
+
+
+if __name__ == '__main__':
+    osmhandler = OSMHandler()
+    parser = sax.make_parser()
+    parser.setContentHandler(osmhandler)
+    parser.parse('south-yorkshire-latest.osm')
+    res = osmhandler.nodes, osmhandler.ways, osmhandler.graph
+    print("Node size", total_size(res[0]))
+    print("Way size", total_size(res[1][:100]))
+    print("Graph size", total_size(res[2]))
+    print("Graph stats", Counter(len(b) for b in res[2].values()))
+    print("Most interesting block", max(sum(r.interest for r in w['nodes']) for w in res[1]))
+    print("Rest points ", sum(1 for r in res[1] for n in r['nodes'] if n.rest))
+    print("Input rest points", sum(1 for r in res[0].values() if r.rest)) # 38 for all of south yorkshire seems far too low
