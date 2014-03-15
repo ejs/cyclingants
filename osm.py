@@ -18,20 +18,24 @@ def travelable_route(way, tags):
 
 
 class Node:
-    __slots__ = ["lat", "lon", "interest", "nid"]
+    __slots__ = ["lat", "lon", "interest", "nid", "rest"]
 
     def __init__(self, lat, lon, nid):
         self.lat = float(lat)
         self.lon = float(lon)
         self.interest = 0
+        self.rest = False
         self.nid = int(nid)
 
-    def how_interesting(self, tags):
+    def apply_tags(self, tags):
         # TODO: refine these more
-        if any(t in tags for t in ('historic', 'leisure', 'natural', 'tourism', 'amenity')):
+        if any(t in tags for t in ('historic', 'leisure', 'natural', 'tourism', 'amenity', 'sport')):
             self.interest = 1
         elif tags.get('building') in ('hotel', 'cathedral', 'chapel', 'church', 'university'):
             self.interest = 1
+        if (tags.get('building') == 'Hotel' or
+                tags.get('tourism') in ('alpine_hut', 'camp_site', 'chalet', 'guest_house', 'hostel', 'hotel', 'motel', 'wilderness_hut')):
+            self.rest = True
 
     def cost_to(self, next_node):
         if next_node:
@@ -54,6 +58,7 @@ class RouteSection:
             self.nid = int(nodes[0].nid)
         else:
             self.nid = [int(n.nid) for n in nodes]
+        self.rest = any(n.rest for n in nodes)
 
     def __str__(self):
         return "{} ({} to {}) cost {}, interest {}".format(self.nid, self.start, self.stop, self.cost_out, self.interest)
@@ -69,13 +74,14 @@ class RouteSection:
 
 
 class ACOEdge:
-    __slots__ = ["next_id", "cost", "interest", "pheremones"]
+    __slots__ = ["next_id", "cost", "interest", "pheremones", "rest"]
 
-    def __init__(self, nid, cost, interest):
+    def __init__(self, nid, cost, interest, rest):
         self.next_id = nid
         self.cost = cost
         self.interest = interest
         self.pheremones = 0
+        self.rest = rest
 
 
 class OSMHandler(ContentHandler):
@@ -109,7 +115,7 @@ class OSMHandler(ContentHandler):
 
     def endElement(self, name):
         if name == 'node':
-            self.node[1].how_interesting(self.tags)
+            self.node[1].apply_tags(self.tags)
             if self.tags.get('visible', 'true') != 'false':
                 self.nodes[int(self.node[0])] = self.node[1]
             self.node = None
