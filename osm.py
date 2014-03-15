@@ -15,6 +15,7 @@ def travelable_route(way, tags):
         return True
     if tags.get('cycleway'):
         return True
+    return False
 
 
 class Node:
