@@ -126,29 +126,61 @@ class OSMHandler(ContentHandler):
             self.way = None
 
     def endDocument(self):
-        #TODO: refactor for readability
-        node_use = Counter(n for way in self.ways for n in set(way['nodes']))
-        intersections = set(node for node, count in node_use.items() if count > 1)
-        for way in self.ways:
-            nodes = (self.nodes[nd] for nd in way['nodes'])
-            count = itertools.count(1)
-            grouped_nodes = itertools.groupby(nodes, key=lambda n: n.nid in intersections and next(count))
-            combined_nodes = map(RouteSection, grouped_nodes)
-            way['nodes'] = list(combined_nodes)
-        self.graph = defaultdict(list)
-        for way in self.ways:
-            nds = way['nodes']
-            for start, middle, end in zip(nds, nds[1:], nds[2:]+[None]):
-                if not start.intersection:
-                    continue
-                if middle.intersection:
-                    interest = start.interest + middle.interest
-                    self.graph[start.nid].append(ACOEdge(middle.nid, start.cost_to(*middle.start), interest))
-                    self.graph[middle.nid].append(ACOEdge(start.nid, middle.cost_to(*start.stop), interest))
-                elif end:
-                    interest = start.interest + middle.interest + end.interest
-                    self.graph[start.nid].append(ACOEdge(end.nid, start.cost_to(*middle.start)+middle.cost_out+end.cost_from(*middle.stop), interest))
-                    self.graph[end.nid].append(ACOEdge(start.nid, end.cost_to(*middle.stop)+middle.cost_back+start.cost_from(*middle.start), interest))
+        simplify_ways(self.ways, self.nodes)
+        self.graph = clean_graph(ways_to_graph(self.ways))
+
+
+def clean_graph(graph):
+    stats = Counter(len(b) for b in graph.values())
+    # TODO: look at spotting/removing closed loops
+    while stats[1] or stats[0] or stats[2]:
+        for nid in list(graph.keys()):
+            if len(graph[nid]) == 0: # remove anything that has been emptied
+                del graph[nid]
+            elif len(graph[nid]) == 1: # remove dead ends
+                nextid = graph[nid][0].next_id
+                graph[nextid] = [e for e in graph[nextid] if e.next_id != nid]
+                del graph[nid]
+            elif len(graph[nid]) == 2: # inline any node that is just a pass through
+                first, last = graph[nid]
+                first_to = [e for e in graph[first.next_id] if e.next_id == nid][0]
+                last_to = [e for e in graph[last.next_id] if e.next_id == nid][0]
+                graph[first.next_id] = [e for e in graph[first.next_id] if e.next_id != nid] + [ACOEdge(last.next_id, first_to.cost+last.cost, first_to.interest+last.interest, first_to.rest or last_to.rest)]
+                graph[last.next_id] = [e for e in graph[last.next_id] if e.next_id != nid] +[ACOEdge(first.next_id, last_to.cost+first.cost, last_to.interest+first.interest, first_to.rest or last_to.rest)]
+                del graph[nid]
+        stats = Counter(len(b) for b in graph.values())
+    return graph
+
+
+def simplify_ways(ways, nodes):
+    node_use = Counter(n for way in ways for n in set(way['nodes']))
+    intersections = set(node for node, count in node_use.items() if count > 1)
+    count = itertools.count(1)
+    for way in ways:
+        nds = (nodes[nd] for nd in way['nodes'])
+        grouped_nodes = itertools.groupby(nds, key=lambda n: n.nid in intersections and next(count))
+        combined_nodes = map(RouteSection, grouped_nodes)
+        way['nodes'] = list(combined_nodes)
+
+
+def ways_to_graph(ways):
+    graph = defaultdict(list)
+    for way in ways:
+        nds = way['nodes']
+        for start, middle, end in zip(nds, nds[1:], nds[2:]+[None]):
+            if not start.intersection:
+                continue
+            if middle.intersection:
+                interest = start.interest + middle.interest
+                rest = start.rest or middle.start
+                graph[start.nid].append(ACOEdge(middle.nid, start.cost_to(*middle.start), interest, rest))
+                graph[middle.nid].append(ACOEdge(start.nid, middle.cost_to(*start.stop), interest, rest))
+            elif end:
+                interest = start.interest + middle.interest + end.interest
+                rest = start.rest or middle.rest or end.rest
+                graph[start.nid].append(ACOEdge(end.nid, start.cost_to(*middle.start)+middle.cost_out+end.cost_from(*middle.stop), interest, rest))
+                graph[end.nid].append(ACOEdge(start.nid, end.cost_to(*middle.stop)+middle.cost_back+start.cost_from(*middle.start), interest, rest))
+    return graph
 
 
 def load_file(filename):
