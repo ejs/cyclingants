@@ -1,7 +1,10 @@
 #! /usr/bin/python3
-from collections import defaultdict, Counter
+"""
+    Usage: osm.py <inputfile> [<outputfile>]
+"""
+from collections import Counter
 import itertools
-from math import hypot
+from math import hypot, acos, sin, cos, radians
 import xml.sax as sax
 from xml.sax.handler import ContentHandler
 
@@ -9,6 +12,7 @@ from sizing import total_size
 
 
 def travelable_route(way, tags):
+    # TODO: look at expanding these checks
     if tags.get('visible', 'true') == 'false':
         return False
     if tags.get('highway') in ('trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'road', 'cycleway'):
@@ -40,7 +44,9 @@ class Node:
 
     def cost_to(self, next_node):
         if next_node:
-            return hypot(self.lat-next_node.lat, self.lon-next_node.lon)
+            alat, alon = radians(self.lat), radians(self.lon)
+            blat, blon = radians(next_node.lat), radians(next_node.lon)
+            return 6373*acos(sin(alon)*sin(blon)*cos(alat-blat) + cos(alon)*cos(blon))
         else:
             return None
 
@@ -54,6 +60,7 @@ class RouteSection:
         self.stop = nodes[-1].lat, nodes[-1].lon
         self.cost_out = sum(n1.cost_to(n2) for n1, n2 in zip(nodes, nodes[1:]))
         self.cost_back = sum(n2.cost_to(n1) for n1, n2 in zip(nodes[1:], nodes)) # TODO: double check this
+        # TODO: also incude nearby interesting nodes (hard)
         self.interest = sum(n.interest for n in nodes)
         if self.intersection:
             self.nid = int(nodes[0].nid)
@@ -74,22 +81,12 @@ class RouteSection:
         return hypot(self.stop[0]-lat, self.stop[1]-lon)
 
 
-class ACOEdge:
-    __slots__ = ["next_id", "cost", "interest", "pheremones", "rest"]
-
-    def __init__(self, nid, cost, interest, rest):
-        self.next_id = nid
-        self.cost = cost
-        self.interest = interest
-        self.pheremones = 0
-        self.rest = rest
-
-
 class OSMHandler(ContentHandler):
     def __init__(self):
         self.node = None
         self.way = None
         self.ways = []
+        # TODO: store nodes in simple db to simplify access. If haloing with a square then SQLite should be fine
         self.nodes = {}
         self.tags = {}
         self.nds = []
@@ -127,61 +124,14 @@ class OSMHandler(ContentHandler):
             self.way = None
 
     def endDocument(self):
-        simplify_ways(self.ways, self.nodes)
-        self.graph = clean_graph(ways_to_graph(self.ways))
-
-
-def clean_graph(graph):
-    stats = Counter(len(b) for b in graph.values())
-    # TODO: look at spotting/removing closed loops
-    while stats[1] or stats[0] or stats[2]:
-        for nid in list(graph.keys()):
-            if len(graph[nid]) == 0: # remove anything that has been emptied
-                del graph[nid]
-            elif len(graph[nid]) == 1: # remove dead ends
-                nextid = graph[nid][0].next_id
-                graph[nextid] = [e for e in graph[nextid] if e.next_id != nid]
-                del graph[nid]
-            elif len(graph[nid]) == 2: # inline any node that is just a pass through
-                first, last = graph[nid]
-                first_to = [e for e in graph[first.next_id] if e.next_id == nid][0]
-                last_to = [e for e in graph[last.next_id] if e.next_id == nid][0]
-                graph[first.next_id] = [e for e in graph[first.next_id] if e.next_id != nid] + [ACOEdge(last.next_id, first_to.cost+last.cost, first_to.interest+last.interest, first_to.rest or last_to.rest)]
-                graph[last.next_id] = [e for e in graph[last.next_id] if e.next_id != nid] +[ACOEdge(first.next_id, last_to.cost+first.cost, last_to.interest+first.interest, first_to.rest or last_to.rest)]
-                del graph[nid]
-        stats = Counter(len(b) for b in graph.values())
-    return graph
-
-
-def simplify_ways(ways, nodes):
-    node_use = Counter(n for way in ways for n in set(way['nodes']))
-    intersections = set(node for node, count in node_use.items() if count > 1)
-    count = itertools.count(1)
-    for way in ways:
-        nds = (nodes[nd] for nd in way['nodes'])
-        grouped_nodes = itertools.groupby(nds, key=lambda n: n.nid in intersections and next(count))
-        combined_nodes = map(RouteSection, grouped_nodes)
-        way['nodes'] = list(combined_nodes)
-
-
-def ways_to_graph(ways):
-    graph = defaultdict(list)
-    for way in ways:
-        nds = way['nodes']
-        for start, middle, end in zip(nds, nds[1:], nds[2:]+[None]):
-            if not start.intersection:
-                continue
-            if middle.intersection:
-                interest = start.interest + middle.interest
-                rest = start.rest or middle.start
-                graph[start.nid].append(ACOEdge(middle.nid, start.cost_to(*middle.start), interest, rest))
-                graph[middle.nid].append(ACOEdge(start.nid, middle.cost_to(*start.stop), interest, rest))
-            elif end:
-                interest = start.interest + middle.interest + end.interest
-                rest = start.rest or middle.rest or end.rest
-                graph[start.nid].append(ACOEdge(end.nid, start.cost_to(*middle.start)+middle.cost_out+end.cost_from(*middle.stop), interest, rest))
-                graph[end.nid].append(ACOEdge(start.nid, end.cost_to(*middle.stop)+middle.cost_back+start.cost_from(*middle.start), interest, rest))
-    return graph
+        node_use = Counter(n for way in self.ways for n in set(way['nodes']))
+        intersections = set(node for node, count in node_use.items() if count > 1)
+        count = itertools.count(1)
+        for way in self.ways:
+            nds = (self.nodes[nd] for nd in way['nodes'])
+            grouped_nodes = itertools.groupby(nds, key=lambda n: n.nid in intersections and next(count))
+            combined_nodes = map(RouteSection, grouped_nodes)
+            way['nodes'] = list(combined_nodes)
 
 
 def load_file(filename):
@@ -190,22 +140,20 @@ def load_file(filename):
         parser = sax.make_parser()
         parser.setContentHandler(osmhandler)
         parser.parse(source)
-        return osmhandler.graph
+        return osmhandler.ways
 
 
 if __name__ == '__main__':
+    from docopt import docopt
+    arguments = docopt(__doc__, version="osm data loader 0.1")
     osmhandler = OSMHandler()
     parser = sax.make_parser()
     parser.setContentHandler(osmhandler)
-    parser.parse('south-yorkshire-latest.osm')
-    res = osmhandler.nodes, osmhandler.ways, osmhandler.graph
-    print("Node size {0:,d}kb".format(total_size(res[0])//1024))
-    print("Way size {0:,d}kb".format(total_size(res[1][:100])//1024))
-    print("Graph size {0:,d}kb".format(total_size(res[2])//1024))
-
-    print("Graph nodes", len(res[2]))
-    print("Graph edges", sum(len(b) for b in res[2].values()))
-    print("Graph stats", Counter(len(b) for b in res[2].values()))
-    print("Most interesting block", max(sum(r.interest for r in w['nodes']) for w in res[1]))
-    print("Rest points ", sum(1 for r in res[1] for n in r['nodes'] if n.rest))
-    print("Input rest points", sum(1 for r in res[0].values() if r.rest)) # 38 for all of south yorkshire seems far too low
+    parser.parse(arguments['<inputfile>'])
+    print("Node size {0:,d}kb".format(total_size(osmhandler.nodes)//1024))
+    print("Way size {0:,d}kb".format(total_size(osmhandler.ways)//1024))
+    print("Most interesting block", max(sum(r.interest for r in w['nodes']) for w in osmhandler.ways))
+    print("Rest points", sum(1 for n in osmhandler.nodes.values() if n.rest)) # 38 for all of south yorkshire seems far too low
+    if arguments['<outputfile>' ]:
+        import waysdb
+        waysdb.store(osmhandler.ways, arguments['<outputfile>'])
