@@ -12,11 +12,11 @@ class ACOEdge:
         self.next_id = nid
         self.cost = cost
         self.interest = interest
-        self.pheromones = 0
+        self.pheromones = 1
         self.rest = rest
 
     def evaporate(self):
-        self.pheromones *= 0.9 # TODO: better decay
+        self.pheromones *= 0.5
 
     def deposit(self, amount):
         self.pheromones += amount
@@ -26,6 +26,7 @@ class BasicAnt():
     def __init__(self, position, max_age, max_tiredness):
         self.position = position
         self.last_position = None
+        self.moves = [position]
         self.max_age = max_age
         self.max_tiredness = max_tiredness
         self.age = 0
@@ -44,9 +45,9 @@ class BasicAnt():
                 self.tiredness = 0
             else:
                 self.tiredness += next_position.cost
-            self.interest *= 0.9 # TODO: better interest decay
             self.interest += next_position.interest
             self.position = next_position.next_id
+            self.moves.append(next_position.next_id)
         return self
 
     def pick_next(self, graph):
@@ -59,8 +60,12 @@ class BasicAnt():
         else: # Apparently bisect breaks on 0
             return valid_choices[0]
 
+    def trail(self):
+        for a, b in zip(self.moves, self.moves[1:]):
+            yield a, b
+
     def deposition(self):
-        return 1 # TODO better deposit amount
+        return self.interest*(self.age/self.max_age)
 
     def alive(self):
         return self.age < self.max_age and self.tiredness < self.max_tiredness
@@ -69,25 +74,27 @@ class BasicAnt():
         if edge.next_id == self.last_position:
             return 0 # No interest in returning to the last position
         # TODO: tweak this
-        return edge.pheromones**2 + (edge.interest+(1 if edge.rest else 0)+1)**2
+        return edge.pheromones**2 * (edge.interest+(1 if edge.rest else 0)+1)**2
+
+
+def run_ant(Ant, graph, starting_point):
+    a = Ant(starting_point)
+    while a.alive():
+        a.move(graph)
+    return a
 
 
 def run_on_graph(graph, starting_points, number_of_ants, rounds, Ant, *analytics):
     for i in range(rounds):
-        for an in analytics:
-            an.generation(graph, i)
-        ants = [Ant(choice(starting_points)) for i in range(number_of_ants)]
-        for j in count(1):
-            if not ants:
-                break
-            ants = [a.move(graph) for a in ants if a.alive()]
-            for an in analytics:
-                an.step(graph, ants, i, j)
-            for edges in graph.values():
-                for e in edges:
-                    e.evaporate()
-            for ant in ants:
-                for edge in graph[ant.position]:
-                    if edge.next_id == ant.last_position:
+        ants = [run_ant(Ant, graph, choice(starting_points)) for i in range(number_of_ants)]
+        for edges in graph.values():
+            for edge in edges:
+                edge.evaporate()
+        for ant in ants:
+            for a, b in ant.trail():
+                for edge in graph[a]:
+                    if edge.next_id == b:
                         edge.deposit(ant.deposition())
+        for an in analytics:
+            an.generation(graph, i, ants)
     return graph

@@ -56,10 +56,11 @@ def clean_graph(graph):
 
 
 def set_up_analyisis(graph):
-    return [analysis.TrackNodeVisits(graph),
+    return [analysis.Printer(graph),
+            analysis.TrackNodeVisits(graph),
             analysis.PheromoneConcentration(graph),
-            analysis.Printer(graph),
-            analysis.TrackInterest(graph)]
+            analysis.TrackInterest(graph),
+            analysis.Distance(graph)]
 
 
 def display(graph, ways, filename):
@@ -83,18 +84,21 @@ if __name__ == '__main__':
     starting_points = find_most_connected_node(graph)
     analyisis = set_up_analyisis(graph)
     try:
-        #result = run_on_graph(graph, starting_points, 50, 5, lambda p: BasicAnt(p, 100, 30), *analyisis)
-        pass
+        result = run_on_graph(graph, starting_points, 200, 5, lambda p: BasicAnt(p, 100, 30), *analyisis)
     except KeyboardInterrupt:
         pass
     except Exception as e:
+        print("Something broke")
         print(e)
+        print()
     else:
         display(graph, ways, arguments['<outputfile>'])
     if analysis:
         print()
         for a in analyisis:
             try:
-                print("{}".format(a))
+                res = "{}".format(a)
+                if res != "None":
+                    print(res)
             except:
                 pass

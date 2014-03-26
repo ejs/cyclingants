@@ -2,10 +2,7 @@ class StubAnaliser:
     def __init__(self, graph):
         pass
 
-    def generation(self, graph, gen):
-        pass
-
-    def step(self, graph, ants, gen, step):
+    def generation(self, graph, gen, ants):
         pass
 
     def result(self):
@@ -19,9 +16,10 @@ class TrackNodeVisits(StubAnaliser):
     def __init__(self, graph):
         self.nodes_visited = {nid:0 for nid in graph}
 
-    def step(self, graph, ants, gen, step):
+    def generation(self, graph, gen, ants):
         for a in ants:
-            self.nodes_visited[a.position] += 1
+            for n in a.moves:
+                self.nodes_visited[n] += 1
 
     def result(self):
         return self.nodes_visited
@@ -42,42 +40,35 @@ class TrackNodeVisits(StubAnaliser):
 class PheromoneConcentration(StubAnaliser):
     def __init__(self, graph):
         self.total = 0
-        self.marked = 0
         self.turns = 0
 
-    def generation(self, graph, gen):
+    def generation(self, graph, gen, ants):
         self.turns += 1
         self.total += sum(e.pheromones for n in graph for e in graph[n])/sum(1 for n in graph for e in graph[n])
-        self.marked += sum(e.pheromones for n in graph for e in graph[n])/(sum(1 for n in graph for e in graph[n] if e.pheromones) or 1)
-
-    def result(self):
-        return self.total/self.turns, self.marked/self.turns
-
-    def __str__(self):
-        return "Average pheromone concentration {} marked only {}".format(*self.result())
-
-
-class TrackInterest(StubAnaliser):
-    def __init__(self, graph):
-        self.turns = 0
-        self.total = 0
-
-    def step(self, graph, ants, gen, step):
-        if ants:
-            self.turns += 1
-            self.total += sum(a.interest for a in ants)/len(ants)
+        print("Average pheromones", sum(e.pheromones for n in graph for e in graph[n])/sum(1 for n in graph for e in graph[n]))
+        print("Max pheromones", max(e.pheromones for n in graph for e in graph[n]))
 
     def result(self):
         return self.total/self.turns
 
     def __str__(self):
-        return "Average ant interest {}".format(self.result())
+        return "Average pheromone concentration {}".format(self.result())
 
 
 class Printer(StubAnaliser):
-    def step(self, graph, ants, gen, step):
-        if not step%1000:
-            print(gen, step, len(ants))
+    def generation(self, graph, gen, ants):
+        print()
+        print("Generation", gen)
 
-    def generation(self, graph, gen):
-        print(gen)
+
+class TrackInterest(StubAnaliser):
+    def generation(self, graph, gen, ants):
+        print("average interest", sum(a.interest for a in ants)/len(ants))
+        print("max interest", max(a.interest for a in ants))
+
+
+class Distance(StubAnaliser):
+    def generation(self, graph, gen, ants):
+        print("longest distance", max(a.age for a in ants))
+        print("total distance", sum(a.age for a in ants))
+        print("average distance", sum(a.age for a in ants)/len(ants))
