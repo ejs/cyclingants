@@ -10,8 +10,14 @@ from aco import run_on_graph, BasicAnt, ACOEdge
 import analysis
 from display import GPXOutput
 from graphsearch import analyse_graph, find_most_connected_node
+import graphsearch
 from osm import load_file
 import waysdb
+
+
+def ways_to_locations(ways):
+    print(type(ways[0]['nodes'][0]))
+    return {(n.nid if n.intersection else n.nid[0]):n.start for w in ways for n in w['nodes']}
 
 
 def ways_to_graph(ways):
@@ -63,11 +69,11 @@ def set_up_analyisis(graph):
             analysis.Distance(graph)]
 
 
-def display(graph, ways, filename):
+def display(graph, ways, start, filename):
+    pos = ways_to_locations(ways)
     sink = GPXOutput()
-    for w in ways:
-        for n in w['nodes']:
-            sink.add_track([n.start, n.stop])
+    sink.add_points(*list({p for w in ways for n in w['nodes'] for p in (n.start, n.stop)}))
+    sink.add_track([pos[n] for n in graphsearch.most_marked_route(graph, start)])
     sink.save_to_file(filename)
 
 
@@ -92,7 +98,7 @@ if __name__ == '__main__':
         print(e)
         print()
     else:
-        display(graph, ways, arguments['<outputfile>'])
+        display(graph, ways, starting_points[0], arguments['<outputfile>'])
     if analysis:
         print()
         for a in analyisis:

@@ -29,6 +29,20 @@ def find_most_connected_node(graph):
     return starting_points
 
 
+def most_marked_route(graph, start):
+    visited = set()
+    node = start
+    while True:
+        yield node
+        visited.add(node)
+        try:
+            node = max((n for n in graph[node] if n.next_id not in visited), key=lambda e:e.pheromones).next_id
+            if node in visited:
+                break
+        except:
+            break
+
+
 def analyse_graph(graph):
     print("Size {0:,d}kb".format(total_size(graph)//1024))
     print("Nodes", len(graph))
