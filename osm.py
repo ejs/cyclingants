@@ -23,7 +23,7 @@ def travelable_route(way, tags):
 
 
 class Node:
-    __slots__ = ["lat", "lon", "interest", "nid", "rest"]
+    __slots__ = ["lat", "lon", "interest", "nid", "rest", "way"]
 
     def __init__(self, lat, lon, nid):
         self.lat = float(lat)
@@ -31,6 +31,7 @@ class Node:
         self.interest = 0
         self.rest = False
         self.nid = int(nid)
+        self.way = False
 
     def apply_tags(self, tags):
         # TODO: refine these more
@@ -41,6 +42,7 @@ class Node:
         if (tags.get('building') == 'Hotel' or
                 tags.get('tourism') in ('alpine_hut', 'camp_site', 'chalet', 'guest_house', 'hostel', 'hotel', 'motel', 'wilderness_hut')):
             self.rest = True
+        self.way = travelable_route(None, tags)
 
     def cost_to(self, next_node):
         if next_node:
@@ -124,8 +126,8 @@ class OSMHandler(ContentHandler):
             self.way = None
 
     def endDocument(self):
-        node_use = Counter(n for way in self.ways for n in set(way['nodes']))
-        intersections = set(node for node, count in node_use.items() if count > 1)
+        self.way_nodes = Counter(n for way in self.ways for n in set(way['nodes']))
+        intersections = set(node for node, count in self.way_nodes.items() if count > 1)
         count = itertools.count(1)
         for way in self.ways:
             nds = (self.nodes[nd] for nd in way['nodes'])
@@ -154,6 +156,11 @@ if __name__ == '__main__':
     print("Way size {0:,d}kb".format(total_size(osmhandler.ways)//1024))
     print("Most interesting block", max(sum(r.interest for r in w['nodes']) for w in osmhandler.ways))
     print("Rest points", sum(1 for n in osmhandler.nodes.values() if n.rest)) # 38 for all of south yorkshire seems far too low
+    print("Intersting points", sum(1 for n in osmhandler.nodes.values() if n.interest)) # 38 for all of south yorkshire seems far too low
+    print("Surprsing waypoints", sum(1 for n in osmhandler.nodes.values() if not n.way and n.nid in osmhandler.way_nodes))
+    print("Total waypoints", len(osmhandler.way_nodes))
+    print("Total nodes", len(osmhandler.nodes))
+    print("Total ways", len(osmhandler.ways))
     if arguments['<outputfile>' ]:
         import waysdb
         waysdb.store(osmhandler.ways, arguments['<outputfile>'])
