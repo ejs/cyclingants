@@ -4,18 +4,15 @@
         main.py osm <inputfile> <outputfile>
         main.py pickle <inputfile> <outputfile>
 """
-from collections import defaultdict, Counter
+from collections import defaultdict
 
 from aco import run_on_graph, BasicAnt, ACOEdge
 import analysis
 from display import GPXOutput
-import graphsearch
-import osm
-import waysdb
+import graphtools
 
 
 def ways_to_locations(ways):
-    print(type(ways[0]['nodes'][0]))
     return {(n.nid if n.intersection else n.nid[0]):n.start for w in ways for n in w['nodes']}
 
 
@@ -40,7 +37,7 @@ def ways_to_graph(ways):
 
 
 def set_up_analyisis(graph):
-    return [analyisis.GraphOverview(graph),
+    return [analysis.GraphOverview(graph),
             analysis.Printer(graph),
             analysis.TrackNodeVisits(graph),
             analysis.PheromoneConcentration(graph),
@@ -48,35 +45,7 @@ def set_up_analyisis(graph):
             analysis.Distance(graph)]
 
 
-def display(graph, ways, start, filename):
-    pos = ways_to_locations(ways)
-    sink = GPXOutput()
-    sink.add_points(*list({p for w in ways for n in w['nodes'] for p in (n.start, n.stop)}))
-    sink.add_track([pos[n] for n in graphsearch.most_marked_route(graph, start)])
-    sink.save_to_file(filename)
-
-
-if __name__ == '__main__':
-    from docopt import docopt
-    arguments = docopt(__doc__, version="Cycling Ants 0.1")
-    if arguments['osm']:
-        ways = osm.load_file(arguments['<inputfile>'])
-    elif arguments['pickle']:
-        from osm import RouteSection
-        ways = waysdb.load_file(arguments['<inputfile>'])
-    graph = graphsearch.clean_graph(ways_to_graph(ways))
-    starting_points = graphsearch.find_most_connected_node(graph)
-    analyisis = set_up_analyisis(graph)
-    try:
-        result = run_on_graph(graph, starting_points, 200, 5, lambda p: BasicAnt(p, 100, 30), *analyisis)
-    except KeyboardInterrupt:
-        pass
-    except Exception as e:
-        print("Something broke")
-        print(e)
-        print()
-    else:
-        display(graph, ways, starting_points[0], arguments['<outputfile>'])
+def display_analysis(analysis):
     if analysis:
         print()
         for a in analyisis:
@@ -86,3 +55,42 @@ if __name__ == '__main__':
                     print(res)
             except:
                 pass
+
+
+def display(graph, ways, start, filename):
+    pos = ways_to_locations(ways)
+    sink = GPXOutput()
+    sink.add_points(*list({p for w in ways for n in w['nodes'] for p in (n.start, n.stop)}))
+    sink.add_track([pos[n] for n in graphtools.most_marked_route(graph, start)])
+    sink.save_to_file(filename)
+
+
+def load_graph(config):
+    # TODO: check to see if I can use docopt to avoid manipulating the imports like this
+    if config['osm']:
+        import osm as source
+    elif config['pickle']:
+        import waysdb as source
+    ways = source.load_file(config['<inputfile>'])
+    return graphtools.clean_graph(ways_to_graph(ways)), ways
+
+
+if __name__ == '__main__':
+    from docopt import docopt
+    from osm import RouteSection # shim for pickle
+    config = docopt(__doc__, version="Cycling Ants 0.1")
+    graph, ways = load_graph(config)
+    starting_points = graphtools.find_most_connected_node(graph)
+    analyisis = set_up_analyisis(graph)
+    try:
+        AntFactory = lambda p: BasicAnt(p, 100, 30)
+        result = run_on_graph(graph, starting_points, 20, 5, AntFactory, *analyisis)
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        print("Something broke")
+        print(e)
+        print()
+    else:
+        display(graph, ways, starting_points[0], config['<outputfile>'])
+    display_analysis(analysis)

@@ -1,6 +1,6 @@
 from collections import Counter
 
-from sizing import total_size
+from aco import ACOEdge
 
 
 def find_most_connected_node(graph):
@@ -30,7 +30,7 @@ def most_marked_route(graph, start):
 
 def clean_graph(graph):
     stats = Counter(len(b) for b in graph.values())
-    while stats[1] or stats[0] or stats[2]:
+    while stats[0] or stats[1] or stats[2]:
         for nid in list(graph.keys()):
             if len(graph[nid]) == 0: # remove anything that has been emptied
                 del graph[nid]
@@ -47,5 +47,3 @@ def clean_graph(graph):
                 del graph[nid]
         stats = Counter(len(b) for b in graph.values())
     return graph
-
-

@@ -1,3 +1,8 @@
+from collections import Counter
+
+from sizing import total_size
+
+
 class StubAnaliser:
     def __init__(self, graph):
         pass
@@ -74,7 +79,7 @@ class Distance(StubAnaliser):
         print("average distance", sum(a.age for a in ants)/len(ants))
 
 
-class GraphOverview(StubAnalyser):
+class GraphOverview(StubAnaliser):
     def __init__(self, graph):
         print("Size {0:,d}kb".format(total_size(graph)//1024))
         print("Nodes", len(graph))
@@ -83,7 +88,7 @@ class GraphOverview(StubAnalyser):
         print("Interesting edges", sum(1 for e in graph.values() for n in e if n.interest))
         print("Total interestingness", sum(n.interest for e in graph.values() for n in e))
         print("Stats", Counter(len(e) for e in graph.values()))
-        print("Connected components", is_connected(graph))
+        print("Connected components", self.is_connected(graph))
         print("Longest edge", max(e.cost for edges in graph.values() for e in edges))
 
     def is_connected(self, graph):

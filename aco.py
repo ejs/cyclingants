@@ -1,7 +1,6 @@
 #! /usr/bin/python3
 from bisect import bisect
-from collections import namedtuple
-from itertools import accumulate, count
+from itertools import accumulate
 from random import choice, random
 
 
@@ -22,7 +21,7 @@ class ACOEdge:
         self.pheromones += amount
 
 
-class BasicAnt():
+class BasicAnt:
     def __init__(self, position, max_age, max_tiredness):
         self.position = position
         self.last_position = None
@@ -33,6 +32,10 @@ class BasicAnt():
         self.tiredness = 0
         self.interest = 0
 
+    def search(self, graph):
+        while self.alive():
+            self.move(graph)
+
     def move(self, graph):
         try:
             next_position = self.pick_next(graph)
@@ -41,24 +44,15 @@ class BasicAnt():
         else:
             self.last_position = self.position
             self.age += next_position.cost
-            if next_position.rest:
-                self.tiredness = 0
-            else:
-                self.tiredness += next_position.cost
+            self.tiredness = 0 if next_position.rest else self.tiredness+next_position.cost
             self.interest += next_position.interest
             self.position = next_position.next_id
             self.moves.append(next_position.next_id)
         return self
 
     def pick_next(self, graph):
-        """ Makes use of pattern from http://docs.python.com/3.3/library/random """
         valid_choices = [e for e in graph[self.position] if e.next_id != self.last_position]
-        cumulative_dis = list(accumulate(self.evaluate(e) for e in valid_choices))
-        roll = random() * cumulative_dis[-1]
-        if roll:
-            return valid_choices[bisect(cumulative_dis, roll)]
-        else: # Apparently bisect breaks on 0
-            return valid_choices[0]
+        return valid_choices[biased_random(map(self.evaluate, valid_choices))]
 
     def trail(self):
         for a, b in zip(self.moves, self.moves[1:]):
@@ -77,10 +71,16 @@ class BasicAnt():
         return edge.pheromones**2 * (edge.interest+(1 if edge.rest else 0)+1)**2
 
 
+def biased_random(chances):
+    """ Makes use of pattern from http://docs.python.com/3.3/library/random """
+    cumulative_dis = list(accumulate(chances))
+    roll = random() * cumulative_dis[-1]
+    return bisect(cumulative_dis, roll) if roll else 0
+
+
 def run_ant(Ant, graph, starting_point):
     a = Ant(starting_point)
-    while a.alive():
-        a.move(graph)
+    a.search(graph)
     return a
 
 
