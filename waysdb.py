@@ -3,11 +3,11 @@ import osm
 from osm import RouteSection
 
 
-def store(ways, dbfilename):
+def store_file(ways, dbfilename):
     with open(dbfilename, 'wb') as sink:
         pickle.dump(ways, sink)
 
 
-def load(dbfilename):
+def load_file(dbfilename):
     with open(dbfilename, 'rb') as source:
         return pickle.load(source)

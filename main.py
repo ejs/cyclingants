@@ -11,7 +11,7 @@ import analysis
 from display import GPXOutput
 from graphsearch import analyse_graph, find_most_connected_node
 import graphsearch
-from osm import load_file
+import osm
 import waysdb
 
 
@@ -81,10 +81,10 @@ if __name__ == '__main__':
     from docopt import docopt
     arguments = docopt(__doc__, version="Cycling Ants 0.1")
     if arguments['osm']:
-        ways = load_file(arguments['<inputfile>'])
+        ways = osm.load_file(arguments['<inputfile>'])
     elif arguments['pickle']:
         from osm import RouteSection
-        ways = waysdb.load(arguments['<inputfile>'])
+        ways = waysdb.load_file(arguments['<inputfile>'])
     graph = clean_graph(ways_to_graph(ways))
     analyse_graph(graph)
     starting_points = find_most_connected_node(graph)

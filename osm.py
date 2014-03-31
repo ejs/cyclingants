@@ -163,4 +163,4 @@ if __name__ == '__main__':
     print("Total ways", len(osmhandler.ways))
     if arguments['<outputfile>' ]:
         import waysdb
-        waysdb.store(osmhandler.ways, arguments['<outputfile>'])
+        waysdb.store_file(osmhandler.ways, arguments['<outputfile>'])
