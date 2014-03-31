@@ -9,7 +9,6 @@ from collections import defaultdict, Counter
 from aco import run_on_graph, BasicAnt, ACOEdge
 import analysis
 from display import GPXOutput
-from graphsearch import analyse_graph, find_most_connected_node
 import graphsearch
 import osm
 import waysdb
@@ -62,7 +61,8 @@ def clean_graph(graph):
 
 
 def set_up_analyisis(graph):
-    return [analysis.Printer(graph),
+    return [analyisis.GraphOverview(graph),
+            analysis.Printer(graph),
             analysis.TrackNodeVisits(graph),
             analysis.PheromoneConcentration(graph),
             analysis.TrackInterest(graph),
@@ -86,8 +86,7 @@ if __name__ == '__main__':
         from osm import RouteSection
         ways = waysdb.load_file(arguments['<inputfile>'])
     graph = clean_graph(ways_to_graph(ways))
-    analyse_graph(graph)
-    starting_points = find_most_connected_node(graph)
+    starting_points = graphsearch.find_most_connected_node(graph)
     analyisis = set_up_analyisis(graph)
     try:
         result = run_on_graph(graph, starting_points, 200, 5, lambda p: BasicAnt(p, 100, 30), *analyisis)
