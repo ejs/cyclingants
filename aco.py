@@ -61,7 +61,7 @@ class BasicAnt:
         valid_choices = [e for e in graph[self.position] if e.next_id != self.last_position]
         return valid_choices[biased_random(map(self.evaluate, valid_choices))]
 
-    def trail(self):
+    def __iter__(self):
         for a, b in zip(self.moves, self.moves[1:]):
             yield a, b
 
@@ -97,7 +97,7 @@ def run_on_graph(graph, starting_points, number_of_ants, rounds, Ant, *analytics
             for edge in edges:
                 edge.evaporate()
         for ant in ants:
-            for a, b in ant.trail():
+            for a, b in ant:
                 for edge in graph[a]:
                     if edge.next_id == b:
                         edge.deposit(ant.deposition())
