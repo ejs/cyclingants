@@ -6,6 +6,8 @@ from random import choice, random
 
 class ACOEdge:
     __slots__ = ["next_id", "cost", "interest", "pheromones", "rest"]
+    p = 0.99 # TODO: tweak this
+    # Question: should this be linked to the ants?
 
     def __init__(self, nid, cost, interest, rest):
         self.next_id = nid
@@ -15,13 +17,17 @@ class ACOEdge:
         self.rest = rest
 
     def evaporate(self):
-        self.pheromones *= 0.5
+        self.pheromones *= self.p
 
     def deposit(self, amount):
         self.pheromones += amount
 
 
 class BasicAnt:
+    # TODO: tweak these
+    alpha = 1
+    beta = 2
+
     def __init__(self, position, max_age, max_tiredness):
         self.position = position
         self.last_position = None
@@ -67,8 +73,7 @@ class BasicAnt:
     def evaluate(self, edge):
         if edge.next_id == self.last_position:
             return 0 # No interest in returning to the last position
-        # TODO: tweak this
-        return edge.pheromones**2 * (edge.interest+(1 if edge.rest else 0)+1)**2
+        return edge.pheromones**self.alpha * (edge.interest+(1 if edge.rest else 0)+1)**self.beta
 
 
 def biased_random(chances):
