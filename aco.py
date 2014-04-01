@@ -37,6 +37,7 @@ class BasicAnt:
         self.age = 0
         self.tiredness = 0
         self.interest = 0
+        self.dead = False
 
     def search(self, graph):
         while self.alive():
@@ -46,7 +47,7 @@ class BasicAnt:
         try:
             next_position = self.pick_next(graph)
         except:
-            self.age = self.max_age # die
+            self.dead = True
         else:
             self.last_position = self.position
             self.age += next_position.cost
@@ -68,7 +69,7 @@ class BasicAnt:
         return self.interest*(self.age/self.max_age)
 
     def alive(self):
-        return self.age < self.max_age and self.tiredness < self.max_tiredness
+        return not self.dead and self.age < self.max_age and self.tiredness < self.max_tiredness
 
     def evaluate(self, edge):
         if edge.next_id == self.last_position:
