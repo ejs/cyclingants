@@ -77,6 +77,27 @@ class BasicAnt:
         return edge.pheromones**self.alpha * (edge.interest+(1 if edge.rest else 0)+1)**self.beta
 
 
+class LooplessAnt(BasicAnt):
+    """ It appears that the decreased exploration completely counters any
+        increase in the theoretical value of of the final route
+        as the chance of any ant finding any point of interest is
+        close to 0
+    """
+    def evaluate(self, edge):
+        if edge.next_id in self.moves:
+            return 0 # No interest in looping
+        return super().evaluate(edge)
+
+    def pick_next(self, graph):
+        valid_choices = [e for e in graph[self.position] if e.next_id not in self.moves]
+        if not valid_choices:
+            raise ValueError
+        return valid_choices[biased_random(map(self.evaluate, valid_choices))]
+
+    def deposit(self):
+        return (1+self.interest)*(self.age/self.max_age)
+
+
 def biased_random(chances):
     """ Makes use of pattern from http://docs.python.com/3.3/library/random """
     cumulative_dis = list(accumulate(chances))
