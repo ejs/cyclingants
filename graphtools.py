@@ -14,16 +14,19 @@ def find_most_connected_node(graph):
     return starting_points
 
 
-def most_marked_route(graph, start):
+def most_marked_route(graph, start, max_distance):
     visited = set()
+    distance = 0
     node = start
-    while True:
+    while distance < max_distance:
         yield node
         visited.add(node)
         try:
-            node = max((n for n in graph[node] if n.next_id not in visited), key=lambda e:e.pheromones).next_id
+            edge = max((n for n in graph[node] if n.next_id not in visited), key=lambda e:e.pheromones)
         except ValueError: # if there are no good choices stop looking
             break
+        node = edge.next_id
+        distance += edge.cost
 
 
 def clean_graph(graph):

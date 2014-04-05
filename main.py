@@ -57,11 +57,11 @@ def display_analysis(analysis):
                 pass
 
 
-def display(graph, ways, start, filename):
+def display(graph, ways, start, distance, filename):
     pos = ways_to_locations(ways)
     sink = GPXOutput()
     sink.add_points(*list({p for w in ways for n in w['nodes'] for p in (n.start, n.stop)}))
-    sink.add_track([pos[n] for n in graphtools.most_marked_route(graph, start)])
+    sink.add_track([pos[n] for n in graphtools.most_marked_route(graph, start, distance)])
     sink.save_to_file(filename)
 
 
@@ -82,9 +82,10 @@ if __name__ == '__main__':
     graph, ways = load_graph(config)
     starting_points = graphtools.find_most_connected_node(graph)
     analyisis = set_up_analyisis(graph)
+    max_distance = 100
     try:
-        AntFactory = lambda p: BasicAnt(p, 100, 30)
-        result = run_on_graph(graph, starting_points, 20, 5, AntFactory, *analyisis)
+        AntFactory = lambda p: BasicAnt(p, max_distance, 30)
+        result = run_on_graph(graph, starting_points, 300, 20, AntFactory, *analyisis)
     except KeyboardInterrupt:
         pass
     except Exception as e:
@@ -92,5 +93,5 @@ if __name__ == '__main__':
         print(e)
         print()
     else:
-        display(graph, ways, starting_points[0], config['<outputfile>'])
+        display(graph, ways, starting_points[0], max_distance, config['<outputfile>'])
     display_analysis(analysis)
