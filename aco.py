@@ -57,7 +57,6 @@ class BasicAnt:
             self.interest += next_position.interest
             self.position = next_position.next_id
             self.moves.append(next_position.next_id)
-        return self
 
     def pick_next(self, graph):
         valid_choices = [e for e in graph[self.position] if e.next_id != self.last_position]
@@ -83,9 +82,9 @@ class BasicAnt:
                     else:
                         node_visits[n] -= 1
             self.moves = loopless
-            self.age = sum(e.cost for a, b in self for e in graph[a] if e.next_id == b)
-            self.interest = sum(e.interest for a, b in self for e in graph[a] if e.next_id == b)
             node_visits = Counter(self.moves)
+        self.age = sum(e.cost for a, b in self for e in graph[a] if e.next_id == b)
+        self.interest = sum(e.interest for a, b in self for e in graph[a] if e.next_id == b)
 
     def __iter__(self):
         for a, b in zip(self.moves, self.moves[1:]):
