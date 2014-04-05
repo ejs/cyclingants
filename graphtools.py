@@ -22,9 +22,7 @@ def most_marked_route(graph, start):
         visited.add(node)
         try:
             node = max((n for n in graph[node] if n.next_id not in visited), key=lambda e:e.pheromones).next_id
-            if node in visited:
-                break
-        except:
+        except ValueError: # if there are no good choices stop looking
             break
 
 

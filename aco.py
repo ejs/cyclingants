@@ -48,7 +48,7 @@ class BasicAnt:
     def move(self, graph):
         try:
             next_position = self.pick_next(graph)
-        except:
+        except IndexError:
             self.dead = True
         else:
             self.last_position = self.position
