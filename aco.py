@@ -1,5 +1,6 @@
 #! /usr/bin/python3
 from bisect import bisect
+from collections import Counter
 from itertools import accumulate
 from random import choice, random
 
@@ -42,6 +43,7 @@ class BasicAnt:
     def search(self, graph):
         while self.alive():
             self.move(graph)
+        self.simplify_journy(graph)
 
     def move(self, graph):
         try:
@@ -60,6 +62,30 @@ class BasicAnt:
     def pick_next(self, graph):
         valid_choices = [e for e in graph[self.position] if e.next_id != self.last_position]
         return valid_choices[biased_random(map(self.evaluate, valid_choices))]
+
+    def simplify_journy(self, graph):
+        node_visits = Counter(self.moves)
+        while node_visits.most_common(1)[0][1] > 1:
+            # I'm not sure how this can need doing more than once but apparently it can
+            skipping_till = None
+            loopless = []
+            for n in self.moves:
+                if not skipping_till:
+                    if node_visits[n] > 1:
+                        skipping_till = n
+                    else:
+                        loopless.append(n)
+                else:
+                    if n == skipping_till:
+                        loopless.append(n)
+                        skipping_till = None
+                        node_visits[n] -= 2
+                    else:
+                        node_visits[n] -= 1
+            self.moves = loopless
+            self.age = sum(e.cost for a, b in self for e in graph[a] if e.next_id == b)
+            self.interest = sum(e.interest for a, b in self for e in graph[a] if e.next_id == b)
+            node_visits = Counter(self.moves)
 
     def __iter__(self):
         for a, b in zip(self.moves, self.moves[1:]):
