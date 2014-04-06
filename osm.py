@@ -79,7 +79,7 @@ class RouteIntersection:
 
 
 class RouteEdge:
-    interesection = False
+    intersection = False
 
     def __init__(self, nodes):
         self.start = nodes[0].lat, nodes[0].lon

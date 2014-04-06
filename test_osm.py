@@ -83,6 +83,102 @@ class TestNode(unittest.TestCase):
         self.assertEqual(int(node_b.cost_to(node_a)), 157)
 
 
+class TestRouteIntersection(unittest.TestCase):
+    def test_init(self):
+        nd = osm.Node(1, 2, 3)
+        ri = osm.RouteIntersection(nd)
+        self.assertEqual(ri.position, (1, 2))
+        self.assertEqual(ri.position, ri.start)
+        self.assertEqual(ri.position, ri.stop)
+        self.assertEqual(ri.cost_out, 0)
+        self.assertEqual(ri.cost_back, 0)
+        self.assertEqual(ri.interest, False)
+        self.assertEqual(ri.intersection, True)
+        self.assertEqual(ri.nid, 3)
+        self.assertEqual(ri.rest, False)
+
+    def test_cost_to(self):
+        nd = osm.Node(1, 2, 3)
+        ri = osm.RouteIntersection(nd)
+        self.assertEqual(int(ri.cost_to(2, 1)), 157)
+
+    def test_cost_from(self):
+        nd = osm.Node(1, 2, 3)
+        ri = osm.RouteIntersection(nd)
+        self.assertEqual(int(ri.cost_from(2, 1)), 157)
+
+
+class TestRouteEdge(unittest.TestCase):
+    def test_init_with_single_node(self):
+        nd = osm.Node(1, 2, 3)
+        re = osm.RouteEdge([nd])
+        self.assertEqual(re.start, (1, 2))
+        self.assertEqual(re.start, re.stop)
+        self.assertEqual(re.cost_out, 0)
+        self.assertEqual(re.cost_back, 0)
+        self.assertEqual(re.interest, 0)
+        self.assertEqual(re.intersection, False)
+        self.assertEqual(re.nid, [3])
+        self.assertEqual(re.rest, False)
+
+    def test_init_with_two_boring_nodes(self):
+        nd = osm.Node(1, 2, 3)
+        nd2 = osm.Node(2, 1, 4)
+        re = osm.RouteEdge([nd, nd2])
+        self.assertEqual(re.start, (1, 2))
+        self.assertEqual(re.stop, (2, 1))
+        self.assertEqual(int(re.cost_out), 157)
+        self.assertEqual(int(re.cost_back), 157)
+        self.assertEqual(re.interest, 0)
+        self.assertEqual(re.intersection, False)
+        self.assertEqual(re.nid, [3, 4])
+        self.assertEqual(re.rest, False)
+
+    def test_init_with_multiple_interesting_nodes(self):
+        nd = osm.Node(1, 2, 3)
+        nd.interest = 1
+        nd2 = osm.Node(2, 1, 4)
+        nd2.interest = 1
+        re = osm.RouteEdge([nd, nd2])
+        self.assertEqual(re.start, (1, 2))
+        self.assertEqual(re.stop, (2, 1))
+        self.assertEqual(int(re.cost_out), 157)
+        self.assertEqual(int(re.cost_back), 157)
+        self.assertEqual(re.interest, 2)
+        self.assertEqual(re.intersection, False)
+        self.assertEqual(re.nid, [3, 4])
+        self.assertEqual(re.rest, False)
+
+    def test_init_with_multiple_rest_nodes(self):
+        nd = osm.Node(1, 2, 3)
+        nd.rest = True
+        nd2 = osm.Node(2, 1, 4)
+        nd2.rest = True
+        re = osm.RouteEdge([nd, nd2])
+        self.assertEqual(re.start, (1, 2))
+        self.assertEqual(re.stop, (2, 1))
+        self.assertEqual(int(re.cost_out), 157)
+        self.assertEqual(int(re.cost_back), 157)
+        self.assertEqual(re.interest, 0)
+        self.assertEqual(re.intersection, False)
+        self.assertEqual(re.nid, [3, 4])
+        self.assertEqual(re.rest, True)
+
+    def test_cost_to(self):
+        nd = osm.Node(1, 2, 3)
+        nd.rest = True
+        nd2 = osm.Node(2, 1, 4)
+        nd2.rest = True
+        re = osm.RouteEdge([nd, nd2])
+        self.assertEqual(int(re.cost_to(2, 1)), 157)
+
+    def test_cost_from(self):
+        nd = osm.Node(1, 2, 3)
+        nd.rest = True
+        nd2 = osm.Node(2, 1, 4)
+        nd2.rest = True
+        re = osm.RouteEdge([nd, nd2])
+        self.assertEqual(int(re.cost_from(3, 2)), 157)
 
 
 if __name__ == '__main__':
