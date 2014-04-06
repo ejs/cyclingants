@@ -39,7 +39,7 @@ class Node:
             self.interest = 1
         elif tags.get('building') in ('hotel', 'cathedral', 'chapel', 'church', 'university'):
             self.interest = 1
-        if (tags.get('building') == 'Hotel' or
+        if (tags.get('building') == 'hotel' or
                 tags.get('tourism') in ('alpine_hut', 'camp_site', 'chalet', 'guest_house', 'hostel', 'hotel', 'motel', 'wilderness_hut')):
             self.rest = True
         self.way = travelable_route(None, tags)
