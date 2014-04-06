@@ -22,6 +22,12 @@ def travelable_route(way, tags):
     return False
 
 
+def distance_between(alat, alon, blat, blon):
+    alat, alon = radians(90-alat), radians(alon)
+    blat, blon = radians(90-blat), radians(blon)
+    return 6373*acos(sin(alat)*sin(blat)*cos(alon-blon) + cos(alat)*cos(blat))
+
+
 class Node:
     __slots__ = ["lat", "lon", "interest", "nid", "rest", "way"]
 
@@ -46,9 +52,7 @@ class Node:
 
     def cost_to(self, next_node):
         if next_node:
-            alat, alon = radians(90-self.lat), radians(self.lon)
-            blat, blon = radians(90-next_node.lat), radians(next_node.lon)
-            return 6373*acos(sin(alat)*sin(blat)*cos(alon-blon) + cos(alat)*cos(blat))
+            return distance_between(self.lat, self.lon, next_node.lat, next_node.lon)
         else:
             return None
 
@@ -68,13 +72,14 @@ class RouteIntersection:
         return "Intersection {} ({} to {}) cost {}, interest {}".format(self.nid, self.start, self.stop, self.cost_out, self.interest)
 
     def cost_to(self, lat, lon):
-        return hypot(self.start[0]-lat, self.start[1]-lon)
+        return distance_between(self.position[0], self.position[1], lat, lon)
 
     def cost_from(self, lat, lon):
-        return hypot(self.stop[0]-lat, self.stop[1]-lon)
+        return distance_between(self.position[0], self.position[1], lat, lon)
+
 
 class RouteEdge:
-    self.interesection = False
+    interesection = False
 
     def __init__(self, nodes):
         self.start = nodes[0].lat, nodes[0].lon
@@ -90,10 +95,11 @@ class RouteEdge:
         return "Route Edge {} ({} to {}) cost {}, interest {}".format(self.nid, self.start, self.stop, self.cost_out, self.interest)
 
     def cost_to(self, lat, lon):
-        return hypot(self.start[0]-lat, self.start[1]-lon)
+        return distance_between(self.start[0], self.start[1], lat, lon)
 
     def cost_from(self, lat, lon):
-        return hypot(self.stop[0]-lat, self.stop[1]-lon)
+        return distance_between(self.stop[0], self.stop[1], lat, lon)
+
 
 
 class OSMHandler(ContentHandler):
