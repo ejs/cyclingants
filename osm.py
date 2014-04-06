@@ -53,28 +53,41 @@ class Node:
             return None
 
 
-class RouteSection:
-    def __init__(self, info):
-        self.intersection, nodes = info
-        self.intersection = bool(self.intersection)
-        nodes = list(nodes)
+class RouteIntersection:
+    intersection = True
+    cost_out = 0
+    cost_back = 0
+
+    def __init__(self, node):
+        self.start = self.stop = self.position = node.lat, node.lon
+        self.interest = node.interest
+        self.nid = int(node.nid)
+        self.rest = node.rest
+
+    def __str__(self):
+        return "Intersection {} ({} to {}) cost {}, interest {}".format(self.nid, self.start, self.stop, self.cost_out, self.interest)
+
+    def cost_to(self, lat, lon):
+        return hypot(self.start[0]-lat, self.start[1]-lon)
+
+    def cost_from(self, lat, lon):
+        return hypot(self.stop[0]-lat, self.stop[1]-lon)
+
+class RouteEdge:
+    self.interesection = False
+
+    def __init__(self, nodes):
         self.start = nodes[0].lat, nodes[0].lon
         self.stop = nodes[-1].lat, nodes[-1].lon
         self.cost_out = sum(n1.cost_to(n2) for n1, n2 in zip(nodes, nodes[1:]))
-        self.cost_back = sum(n2.cost_to(n1) for n1, n2 in zip(nodes[1:], nodes)) # TODO: double check this
-        # TODO: also incude nearby interesting nodes (hard)
+        self.cost_back = sum(n2.cost_to(n1) for n1, n2 in zip(nodes, nodes[1:]))
         self.interest = sum(n.interest for n in nodes)
-        if self.intersection:
-            self.nid = int(nodes[0].nid)
-        else:
-            self.nid = [int(n.nid) for n in nodes]
+        self.nid = [int(n.nid) for n in nodes]
+        self.contains = [int(n.nid) for n in nodes]
         self.rest = any(n.rest for n in nodes)
 
     def __str__(self):
-        return "{} ({} to {}) cost {}, interest {}".format(self.nid, self.start, self.stop, self.cost_out, self.interest)
-
-    def __repr__(self):
-        return "Route Section <{} ({} to {}) cost {}, interest {}>".format(self.nid, self.start, self.stop, self.cost_out, self.interest)
+        return "Route Edge {} ({} to {}) cost {}, interest {}".format(self.nid, self.start, self.stop, self.cost_out, self.interest)
 
     def cost_to(self, lat, lon):
         return hypot(self.start[0]-lat, self.start[1]-lon)
@@ -130,10 +143,16 @@ class OSMHandler(ContentHandler):
         intersections = set(node for node, count in self.way_nodes.items() if count > 1)
         count = itertools.count(1)
         for way in self.ways:
-            nds = (self.nodes[nd] for nd in way['nodes'])
-            grouped_nodes = itertools.groupby(nds, key=lambda n: n.nid in intersections and next(count))
-            combined_nodes = map(RouteSection, grouped_nodes)
-            way['nodes'] = list(combined_nodes)
+            way['nodes'] = list(nodes_to_intersections_and_routes(intersections, (self.nodes[nd] for nd in way['nodes'])))
+
+
+def nodes_to_intersections_and_routes(intersections, nodes):
+    count = itertools.count(1)
+    for intersection, clump in itertools.groupby(nodes, key=lambda n: n.nid in intersections and next(count)):
+        if intersection:
+            yield RouteIntersection(list(clump)[0])
+        else:
+            yield RouteEdge(list(clump))
 
 
 def load_file(filename):
