@@ -15,7 +15,7 @@ def travelable_route(way, tags):
     # TODO: look at expanding these checks
     if tags.get('visible', 'true') == 'false':
         return False
-    if tags.get('highway') in ('trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'road', 'cycleway'):
+    if tags.get('highway') in ('trunk', 'trunk_link', 'primary', 'primary_link', 'secondary',  'secondary_link', 'tertiary', 'tertiary_link', 'unclassified', 'road', 'cycleway'):
         return True
     if tags.get('cycleway'):
         return True
