@@ -46,9 +46,9 @@ class Node:
 
     def cost_to(self, next_node):
         if next_node:
-            alat, alon = radians(self.lat), radians(self.lon)
-            blat, blon = radians(next_node.lat), radians(next_node.lon)
-            return 6373*acos(sin(alon)*sin(blon)*cos(alat-blat) + cos(alon)*cos(blon))
+            alat, alon = radians(90-self.lat), radians(self.lon)
+            blat, blon = radians(90-next_node.lat), radians(next_node.lon)
+            return 6373*acos(sin(alat)*sin(blat)*cos(alon-blon) + cos(alat)*cos(blat))
         else:
             return None
 
