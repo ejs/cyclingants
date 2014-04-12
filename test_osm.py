@@ -2,6 +2,7 @@
 import unittest
 import xml.sax as sax
 
+import graph
 import osm
 
 
@@ -14,6 +15,7 @@ class TestFullRun(unittest.TestCase):
         parser.parse('isle-of-wight-latest.osm')
         self.assertEqual(len(osmhandler.nodes), 188334)
         self.assertEqual(len(osmhandler.ways), 1820)
+        self.assertEqual(len(osmhandler.graph), 1599)
 
 
 class TestRoutAnalysis(unittest.TestCase):
@@ -97,30 +99,8 @@ class TestRouteIntersection(unittest.TestCase):
         self.assertEqual(ri.nid, 3)
         self.assertEqual(ri.rest, False)
 
-    def test_cost_to(self):
-        nd = osm.Node(1, 2, 3)
-        ri = osm.RouteIntersection(nd)
-        self.assertEqual(int(ri.cost_to(2, 1)), 157)
-
-    def test_cost_from(self):
-        nd = osm.Node(1, 2, 3)
-        ri = osm.RouteIntersection(nd)
-        self.assertEqual(int(ri.cost_from(2, 1)), 157)
-
 
 class TestRouteEdge(unittest.TestCase):
-    def test_init_with_single_node(self):
-        nd = osm.Node(1, 2, 3)
-        re = osm.RouteEdge([nd])
-        self.assertEqual(re.start, (1, 2))
-        self.assertEqual(re.start, re.stop)
-        self.assertEqual(re.cost_out, 0)
-        self.assertEqual(re.cost_back, 0)
-        self.assertEqual(re.interest, 0)
-        self.assertEqual(re.intersection, False)
-        self.assertEqual(re.nid, [3])
-        self.assertEqual(re.rest, False)
-
     def test_init_with_two_boring_nodes(self):
         nd = osm.Node(1, 2, 3)
         nd2 = osm.Node(2, 1, 4)
@@ -131,7 +111,7 @@ class TestRouteEdge(unittest.TestCase):
         self.assertEqual(int(re.cost_back), 157)
         self.assertEqual(re.interest, 0)
         self.assertEqual(re.intersection, False)
-        self.assertEqual(re.nid, [3, 4])
+        self.assertEqual(re.nid, [])
         self.assertEqual(re.rest, False)
 
     def test_init_with_multiple_interesting_nodes(self):
@@ -139,14 +119,16 @@ class TestRouteEdge(unittest.TestCase):
         nd.interest = 1
         nd2 = osm.Node(2, 1, 4)
         nd2.interest = 1
-        re = osm.RouteEdge([nd, nd2])
+        nd3 = osm.Node(2, 1, 5)
+        nd3.interest = 1
+        re = osm.RouteEdge([nd, nd3, nd2])
         self.assertEqual(re.start, (1, 2))
         self.assertEqual(re.stop, (2, 1))
         self.assertEqual(int(re.cost_out), 157)
         self.assertEqual(int(re.cost_back), 157)
-        self.assertEqual(re.interest, 2)
+        self.assertEqual(re.interest, 1)
         self.assertEqual(re.intersection, False)
-        self.assertEqual(re.nid, [3, 4])
+        self.assertEqual(re.nid, [5])
         self.assertEqual(re.rest, False)
 
     def test_init_with_multiple_rest_nodes(self):
@@ -154,31 +136,25 @@ class TestRouteEdge(unittest.TestCase):
         nd.rest = True
         nd2 = osm.Node(2, 1, 4)
         nd2.rest = True
-        re = osm.RouteEdge([nd, nd2])
+        nd3 = osm.Node(2, 1, 5)
+        nd3.rest = True
+        re = osm.RouteEdge([nd, nd3, nd2])
         self.assertEqual(re.start, (1, 2))
         self.assertEqual(re.stop, (2, 1))
         self.assertEqual(int(re.cost_out), 157)
         self.assertEqual(int(re.cost_back), 157)
         self.assertEqual(re.interest, 0)
         self.assertEqual(re.intersection, False)
-        self.assertEqual(re.nid, [3, 4])
+        self.assertEqual(re.nid, [5])
         self.assertEqual(re.rest, True)
 
-    def test_cost_to(self):
-        nd = osm.Node(1, 2, 3)
-        nd.rest = True
-        nd2 = osm.Node(2, 1, 4)
-        nd2.rest = True
-        re = osm.RouteEdge([nd, nd2])
-        self.assertEqual(int(re.cost_to(2, 1)), 157)
 
-    def test_cost_from(self):
-        nd = osm.Node(1, 2, 3)
-        nd.rest = True
-        nd2 = osm.Node(2, 1, 4)
-        nd2.rest = True
-        re = osm.RouteEdge([nd, nd2])
-        self.assertEqual(int(re.cost_from(3, 2)), 157)
+class TestWayToGraph(unittest.TestCase):
+    pass
+
+
+class TestOSMHandler(unittest.TestCase):
+    pass
 
 
 if __name__ == '__main__':

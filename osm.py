@@ -9,6 +9,7 @@ import xml.sax as sax
 from xml.sax.handler import ContentHandler
 
 from sizing import total_size
+from graph import Graph
 
 
 def travelable_route(way, tags):
@@ -71,13 +72,6 @@ class RouteIntersection:
     def __str__(self):
         return "Intersection {} ({} to {}) cost {}, interest {}".format(self.nid, self.start, self.stop, self.cost_out, self.interest)
 
-    def cost_to(self, lat, lon):
-        return distance_between(self.position[0], self.position[1], lat, lon)
-
-    def cost_from(self, lat, lon):
-        return distance_between(self.position[0], self.position[1], lat, lon)
-
-
 class RouteEdge:
     intersection = False
 
@@ -86,21 +80,14 @@ class RouteEdge:
         self.stop = nodes[-1].lat, nodes[-1].lon
         self.cost_out = sum(n1.cost_to(n2) for n1, n2 in zip(nodes, nodes[1:]))
         self.cost_back = sum(n2.cost_to(n1) for n1, n2 in zip(nodes, nodes[1:]))
-        self.interest = sum(n.interest for n in nodes)
-        self.nid = [int(n.nid) for n in nodes]
-        self.contains = [int(n.nid) for n in nodes]
-        self.rest = any(n.rest for n in nodes)
+        # these have to exclude the intersection nodes to avoid double counting
+        self.interest = sum(n.interest for n in nodes[1:-1])
+        self.nid = [int(n.nid) for n in nodes[1:-1]]
+        self.contains = [int(n.nid) for n in nodes[1:-1]]
+        self.rest = any(n.rest for n in nodes[1:-1])
 
     def __str__(self):
         return "Route Edge {} ({} to {}) cost {}, interest {}".format(self.nid, self.start, self.stop, self.cost_out, self.interest)
-
-    def cost_to(self, lat, lon):
-        return distance_between(self.start[0], self.start[1], lat, lon)
-
-    def cost_from(self, lat, lon):
-        return distance_between(self.stop[0], self.stop[1], lat, lon)
-
-
 
 class OSMHandler(ContentHandler):
     def __init__(self):
@@ -113,6 +100,7 @@ class OSMHandler(ContentHandler):
         self.nds = []
         self.flag = True
         self.blacklist = {'created_by', 'source'}
+        self.graph = Graph()
 
     def startElement(self, name, attributes):
         if name == 'node':
@@ -147,27 +135,33 @@ class OSMHandler(ContentHandler):
     def endDocument(self):
         self.way_nodes = Counter(n for way in self.ways for n in set(way['nodes']))
         intersections = set(node for node, count in self.way_nodes.items() if count > 1)
-        count = itertools.count(1)
+        for n in intersections:
+            node = RouteIntersection(self.nodes[n])
+            self.graph.set_node(n, node)
         for way in self.ways:
-            way['nodes'] = list(nodes_to_intersections_and_routes(intersections, (self.nodes[nd] for nd in way['nodes'])))
+            for a, edge, b in nodes_to_edges(intersections, (self.nodes[nd] for nd in way['nodes'])):
+                self.graph.add_edge(a, b, RouteEdge(edge))
 
 
-def nodes_to_intersections_and_routes(intersections, nodes):
-    count = itertools.count(1)
-    for intersection, clump in itertools.groupby(nodes, key=lambda n: n.nid in intersections and next(count)):
-        if intersection:
-            yield RouteIntersection(list(clump)[0])
-        else:
-            yield RouteEdge(list(clump))
+def nodes_to_edges(intersections, nodes):
+    previous, edge = None, []
+    for point in nodes:
+        edge.append(point)
+        if point.nid in intersections:
+            if previous:
+                yield previous, edge, point.nid
+            previous, edge = point.nid, [point]
 
 
-def load_file(filename):
+def load_graph(filename):
     with open(filename) as source:
         osmhandler = OSMHandler()
         parser = sax.make_parser()
         parser.setContentHandler(osmhandler)
         parser.parse(source)
-        return osmhandler.ways
+        graph = osmhandler.graph
+        graph.compact()
+        return graph
 
 
 if __name__ == '__main__':
@@ -179,13 +173,14 @@ if __name__ == '__main__':
     parser.parse(arguments['<inputfile>'])
     print("Node size {0:,d}kb".format(total_size(osmhandler.nodes)//1024))
     print("Way size {0:,d}kb".format(total_size(osmhandler.ways)//1024))
-    print("Most interesting block", max(sum(r.interest for r in w['nodes']) for w in osmhandler.ways))
+    print("Graph size {0:,d}".format(total_size(osmhandler.graph)))
     print("Rest points", sum(1 for n in osmhandler.nodes.values() if n.rest)) # 38 for all of south yorkshire seems far too low
     print("Intersting points", sum(1 for n in osmhandler.nodes.values() if n.interest)) # 38 for all of south yorkshire seems far too low
-    print("Surprsing waypoints", sum(1 for n in osmhandler.nodes.values() if not n.way and n.nid in osmhandler.way_nodes))
     print("Total waypoints", len(osmhandler.way_nodes))
     print("Total nodes", len(osmhandler.nodes))
     print("Total ways", len(osmhandler.ways))
+    print("Total graph nodes", len(osmhandler.graph))
+    print(osmhandler.graph)
     if arguments['<outputfile>' ]:
         import waysdb
-        waysdb.store_file(osmhandler.ways, arguments['<outputfile>'])
+        waysdb.store_file(osmhandler.graph, arguments['<outputfile>'])
