@@ -25,8 +25,14 @@ class Graph:
             if nid in edges:
                 del edges[nid]
 
+    def __str__(self):
+        return "Graph with {} nodes and {} edges".format(len(self), sum(len(self.get_edges(n)) for n in self))
+
     def __len__(self):
         return len(self.node_info)
+
+    def __iter__(self):
+        return iter(self.node_info)
 
     def add_edge(self, fid, tid, info):
         if fid not in self.node_info or tid not in self.node_info:
@@ -44,9 +50,9 @@ class Graph:
             return [e for es in self.node_links[fid].values() for e in es]
 
     def clean(self):
-        for n in list(self.node_info):
+        for n in list(self):
             if n not in self.node_links:
-                if not any(self.get_edges(nd, n) for nd in list(self.node_links)):
+                if not any(self.get_edges(nd, n) for nd in list(self)):
                     self.del_node(n)
 
     def trim(self):
@@ -77,7 +83,7 @@ class Graph:
         flag = True
         while flag:
             flag = False
-            for nid in list(self.node_links):
+            for nid in list(self):
                 nodes = list(self.node_links[nid])
                 edges = [self.node_links[nid][n] for n in nodes]
                 if [len(e) for e in edges] == [1, 1]:
@@ -89,7 +95,7 @@ class Graph:
 
     def find_most_connected_nodes(self):
         most_connected, starting_points = 0, []
-        for node in self.node_links:
+        for node in self:
             edges = self.get_edges(node)
             if len(edges) > most_connected:
                 most_connected = len(edges)
