@@ -6,12 +6,11 @@ from random import choice, random
 
 
 class ACOEdge:
-    __slots__ = ["next_id", "cost", "interest", "pheromones", "rest"]
+    __slots__ = ["cost", "interest", "pheromones", "rest"]
     p = 0.99 # TODO: tweak this
     # Question: should this be linked to the ants?
 
-    def __init__(self, nid, cost, interest, rest):
-        self.next_id = nid
+    def __init__(self, cost, interest, rest):
         self.cost = cost
         self.interest = interest
         self.pheromones = 1
@@ -47,7 +46,7 @@ class BasicAnt:
 
     def move(self, graph):
         try:
-            next_position = self.pick_next(graph)
+            to, next_position = self.pick_next(graph)
         except IndexError:
             self.dead = True
         else:
@@ -55,12 +54,12 @@ class BasicAnt:
             self.age += next_position.cost
             self.tiredness = 0 if next_position.rest else self.tiredness+next_position.cost
             self.interest += next_position.interest
-            self.position = next_position.next_id
-            self.moves.append(next_position.next_id)
+            self.position = to
+            self.moves.append(to)
 
     def pick_next(self, graph):
-        valid_choices = [e for e in graph[self.position] if e.next_id != self.last_position]
-        return valid_choices[biased_random(map(self.evaluate, valid_choices))]
+        valid_choices = [(to, e) for to, e in graph.get_edges(self.position) if to != self.last_position]
+        return valid_choices[biased_random(self.evaluate(to, e) for to, e in valid_choices)]
 
     def simplify_journy(self, graph):
         node_visits = Counter(self.moves)
@@ -83,8 +82,8 @@ class BasicAnt:
                         node_visits[n] -= 1
             self.moves = loopless
             node_visits = Counter(self.moves)
-        self.age = sum(e.cost for a, b in self for e in graph[a] if e.next_id == b)
-        self.interest = sum(e.interest for a, b in self for e in graph[a] if e.next_id == b)
+        self.age = sum(graph.get_edges(a, b)[0].cost for a, b in self)
+        self.interest = sum(graph.get_edges(a, b)[0].interest for a, b in self)
 
     def __iter__(self):
         for a, b in zip(self.moves, self.moves[1:]):
@@ -96,8 +95,8 @@ class BasicAnt:
     def alive(self):
         return not self.dead and self.age < self.max_age and self.tiredness < self.max_tiredness
 
-    def evaluate(self, edge):
-        if edge.next_id == self.last_position:
+    def evaluate(self, next_id, edge):
+        if next_id == self.last_position:
             return 0 # No interest in returning to the last position
         return edge.pheromones**self.alpha * (edge.interest+(1 if edge.rest else 0)+1)**self.beta
 
@@ -139,14 +138,13 @@ def run_ant(Ant, graph, starting_point):
 def run_on_graph(graph, starting_points, number_of_ants, rounds, Ant, *analytics):
     for i in range(rounds):
         ants = [run_ant(Ant, graph, choice(starting_points)) for i in range(number_of_ants)]
-        for edges in graph.values():
-            for edge in edges:
+        for node in graph:
+            for to, edge in graph.get_edges(node):
                 edge.evaporate()
         for ant in ants:
             for a, b in ant:
-                for edge in graph[a]:
-                    if edge.next_id == b:
-                        edge.deposit(ant.deposition())
+                for edge in graph.get_edges(a, b):
+                    edge.deposit(ant.deposition())
         for an in analytics:
             an.generation(graph, i, ants)
     return graph

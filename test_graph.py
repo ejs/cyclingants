@@ -154,6 +154,25 @@ class TestGraph(unittest.TestCase):
         g = self.build_complex_graph()
         self.assertEqual(g.find_most_connected_nodes(), ["n1", "n2"])
 
+    def test_tranform_ids(self):
+        g = self.build_complex_graph()
+        gt = g.transform(t_id=lambda a: "-"+a)
+        self.assertEqual(len(g), len(gt))
+        self.assertEqual(g.get_node("n1"), gt.get_node("-n1"))
+        self.assertEqual(g.get_edges("n1", "n2"), gt.get_edges("-n1", "-n2"))
+
+    def test_tranform_nodes(self):
+        g = self.build_complex_graph()
+        gt = g.transform(t_node=lambda a:list(reversed(a)))
+        self.assertEqual(len(g), len(gt))
+        self.assertEqual(gt.get_node("n1"), [1, 0])
+
+    def test_tranform_edge(self):
+        g = self.build_complex_graph()
+        gt = g.transform(t_edge=lambda a:list(reversed(a)))
+        self.assertEqual(len(g), len(gt))
+        self.assertEqual(gt.get_edges("n10", "n12")[0], [12, 10])
+
 
 if __name__ == '__main__':
     unittest.main()

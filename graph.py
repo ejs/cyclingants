@@ -47,7 +47,7 @@ class Graph:
         if tid:
             return self.node_links[fid][tid]
         else:
-            return [e for es in self.node_links[fid].values() for e in es]
+            return [(nid, e) for nid, es in self.node_links[fid].items() for e in es]
 
     def clean(self):
         for n in list(self):
@@ -103,3 +103,15 @@ class Graph:
             elif len(edges) == most_connected:
                 starting_points.append(node)
         return sorted(starting_points)
+
+    def transform(self, t_node=None, t_edge=None, t_id=None):
+        t_id = t_id if t_id else lambda a: a
+        t_node = t_node if t_node else lambda a: a
+        t_edge = t_edge if t_edge else lambda a: a
+        res = Graph()
+        for n in self:
+            res.set_node(t_id(n), t_node(self.get_node(n)))
+        for n in self:
+            for nid, e in self.get_edges(n):
+                res.add_edge(t_id(n), t_id(nid), t_edge(e))
+        return res

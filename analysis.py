@@ -49,9 +49,9 @@ class PheromoneConcentration(StubAnaliser):
 
     def generation(self, graph, gen, ants):
         self.turns += 1
-        self.total += sum(e.pheromones for n in graph for e in graph[n])/sum(1 for n in graph for e in graph[n])
-        print("Average pheromones", sum(e.pheromones for n in graph for e in graph[n])/sum(1 for n in graph for e in graph[n]))
-        print("Max pheromones", max(e.pheromones for n in graph for e in graph[n]))
+        self.total += sum(e.pheromones for n in graph for _, e in graph.get_edges(n))/sum(1 for n in graph for e in graph.get_edges(n))
+        print("Average pheromones", sum(e.pheromones for n in graph for _, e in graph.get_edges(n))/sum(1 for n in graph for e in graph.get_edges(n)))
+        print("Max pheromones", max(e.pheromones for n in graph for _, e in graph.get_edges(n)))
 
     def result(self):
         return self.total/self.turns
@@ -81,15 +81,14 @@ class Distance(StubAnaliser):
 
 class GraphOverview(StubAnaliser):
     def __init__(self, graph):
-        print("Size {0:,d}kb".format(total_size(graph)//1024))
-        print("Nodes", len(graph))
-        print("Edges", sum(len(e) for e in graph.values()))
-        print("Rest edges", sum(1 for e in graph.values() for n in e if n.rest))
-        print("Interesting edges", sum(1 for e in graph.values() for n in e if n.interest))
-        print("Total interestingness", sum(n.interest for e in graph.values() for n in e))
-        print("Stats", Counter(len(e) for e in graph.values()))
-        print("Connected components", self.is_connected(graph))
-        print("Longest edge", max(e.cost for edges in graph.values() for e in edges))
+        print(graph)
+        print("Rest edges", sum(1 for n in graph for _, e in graph.get_edges(n) if e.rest))
+        print("Rest nodes", sum(1 for n in graph if graph.get_node(n).rest))
+        print("Interesting edges", sum(1 for n in graph for _, e in graph.get_edges(n) if e.interest))
+        print("Interesting nodes", sum(1 for n in graph if graph.get_node(n).interest))
+        #print("Total interestingness", sum(n.interest for e in graph.values() for n in e))
+        #print("Connected components", self.is_connected(graph))
+        #print("Longest edge", max(e.cost for n in graph for e in graph.get_edges(n)))
 
     def is_connected(self, graph):
         """ Use union find to check whole graph in linear time"""

@@ -160,7 +160,6 @@ def load_graph(filename):
         parser.setContentHandler(osmhandler)
         parser.parse(source)
         graph = osmhandler.graph
-        graph.compact()
         return graph
 
 
