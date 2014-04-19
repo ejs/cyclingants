@@ -47,8 +47,7 @@ def display_analysis(analysis):
 
 def display(filename, graph, start, distance):
     sink = GPXOutput()
-    sink.add_points(*list({p for w in ways for n in w['nodes'] for p in (n.start, n.stop)}))
-    sink.add_track([pos[n] for n in graphtools.most_marked_route(graph, start, distance)])
+    sink.add_track([graph.get_node(n).position for n in graphtools.most_marked_route(graph, start, distance)])
     sink.save_to_file(filename)
 
 

@@ -11,8 +11,9 @@ def most_marked_route(graph, start, max_distance):
         yield node
         visited.add(node)
         try:
-            edge = max((n for n in graph[node] if n.next_id not in visited), key=lambda e:e.pheromones)
+            options = [(n, e) for n, e in graph.get_edges(node) if n not in visited]
+            edge = max(options, key=lambda e:e[1].pheromones)
         except ValueError: # if there are no good choices stop looking
             break
-        node = edge.next_id
-        distance += edge.cost
+        node = edge[0]
+        distance += edge[1].cost
