@@ -117,3 +117,18 @@ class Graph:
         for n, nid, e in self.get_edges():
             res.add_edge(t_id(n), t_id(nid), t_edge(e))
         return res
+
+    def connected_components(self):
+        """ Use union find to check whole graph in linear time"""
+        # TODO: move this into the graph code
+        print(len(self.node_info))
+        print(len(self.node_links))
+        nodes = {nid:None for nid in self}
+        for f, t, _ in self.get_edges():
+            while nodes[f]:
+                f = nodes[f]
+            while nodes[t]:
+                t = nodes[t]
+            if t != f:
+                nodes[t] = f
+        return sum(1 for parent in nodes.values() if not parent)

@@ -86,19 +86,6 @@ class GraphOverview(StubAnaliser):
         print("Rest nodes", sum(1 for n in graph if graph.get_node(n).rest))
         print("Interesting edges", sum(1 for _, _, e in graph.get_edges() if e.interest))
         print("Interesting nodes", sum(1 for n in graph if graph.get_node(n).interest))
-        #print("Connected components", self.is_connected(graph))
+        print("Connected components", graph.connected_components())
         print("Longest edge", max(e.cost for _, _, e in graph.get_edges()))
 
-    def is_connected(self, graph):
-        """ Use union find to check whole graph in linear time"""
-        nodes = {nid:None for nid in graph}
-        for node, edges in graph.items():
-            for nextnode in edges:
-                nextnid = nextnode.next_id
-                while nodes[node]:
-                    node = nodes[node]
-                while nodes[nextnid]:
-                    nextnid = nodes[nextnid]
-                if node != nextnid:
-                    nodes[node] = nextnid
-        return sum(1 for parent in nodes.values() if not parent)
