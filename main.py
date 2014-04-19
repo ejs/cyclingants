@@ -1,8 +1,8 @@
 #! /usr/bin/python3
 """
     Usage:
-        main.py osm <inputfile> <outputfile>
-        main.py pickle <inputfile> <outputfile>
+        main.py osm <inputfile> [<outputfile>]
+        main.py pickle <inputfile> [<outputfile>]
 """
 from collections import defaultdict
 
@@ -77,5 +77,6 @@ if __name__ == '__main__':
         print(e)
         print()
     else:
-        display(graph, ways, starting_points[0], max_distance, config['<outputfile>'])
+        if 'outputfile' in config:
+            display(graph, starting_points[0], max_distance, config['<outputfile>'])
     display_analysis(analysis)
