@@ -49,9 +49,9 @@ class PheromoneConcentration(StubAnaliser):
 
     def generation(self, graph, gen, ants):
         self.turns += 1
-        self.total += sum(e.pheromones for n in graph for _, e in graph.get_edges(n))/sum(1 for n in graph for e in graph.get_edges(n))
-        print("Average pheromones", sum(e.pheromones for n in graph for _, e in graph.get_edges(n))/sum(1 for n in graph for e in graph.get_edges(n)))
-        print("Max pheromones", max(e.pheromones for n in graph for _, e in graph.get_edges(n)))
+        self.total += sum(e.pheromones for _, _, e in graph.get_edges())/sum(1 for _ in graph.get_edges())
+        print("Average pheromones", sum(e.pheromones for _, _, e in graph.get_edges())/sum(1 for e in graph.get_edges()))
+        print("Max pheromones", max(e.pheromones for _, _, e in graph.get_edges()))
 
     def result(self):
         return self.total/self.turns
@@ -82,13 +82,12 @@ class Distance(StubAnaliser):
 class GraphOverview(StubAnaliser):
     def __init__(self, graph):
         print(graph)
-        print("Rest edges", sum(1 for n in graph for _, e in graph.get_edges(n) if e.rest))
+        print("Rest edges", sum(1 for _, _, e in graph.get_edges() if e.rest))
         print("Rest nodes", sum(1 for n in graph if graph.get_node(n).rest))
-        print("Interesting edges", sum(1 for n in graph for _, e in graph.get_edges(n) if e.interest))
+        print("Interesting edges", sum(1 for _, _, e in graph.get_edges() if e.interest))
         print("Interesting nodes", sum(1 for n in graph if graph.get_node(n).interest))
-        #print("Total interestingness", sum(n.interest for e in graph.values() for n in e))
         #print("Connected components", self.is_connected(graph))
-        #print("Longest edge", max(e.cost for n in graph for e in graph.get_edges(n)))
+        print("Longest edge", max(e.cost for _, _, e in graph.get_edges()))
 
     def is_connected(self, graph):
         """ Use union find to check whole graph in linear time"""

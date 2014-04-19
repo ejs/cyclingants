@@ -117,9 +117,8 @@ def run_ant(Ant, graph, starting_point):
 def run_on_graph(graph, starting_points, number_of_ants, rounds, Ant, *analytics):
     for i in range(rounds):
         ants = [run_ant(Ant, graph, choice(starting_points)) for i in range(number_of_ants)]
-        for node in graph:
-            for to, edge in graph.get_edges(node):
-                edge.evaporate()
+        for _, _, edge in graph.get_edges():
+            edge.evaporate()
         for ant in ants:
             for a, b in ant:
                 for edge in graph.get_edges(a, b):

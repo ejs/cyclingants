@@ -39,15 +39,18 @@ class Graph:
             raise KeyError()
         self.node_links[fid][tid].append(info)
 
-    def get_edges(self, fid, tid=None):
-        if fid not in self.node_info:
+    def get_edges(self, fid=None, tid=None):
+        if fid and fid not in self.node_info:
             raise KeyError()
         if tid and tid not in self.node_info:
             raise KeyError()
         if tid:
             return self.node_links[fid][tid]
-        else:
+        elif fid:
             return [(nid, e) for nid, es in self.node_links[fid].items() for e in es]
+        else:
+            return [(f, nid, e) for f in self for nid, es in self.node_links[f].items() for e in es]
+
 
     def clean(self):
         for n in list(self):
@@ -111,7 +114,6 @@ class Graph:
         res = Graph()
         for n in self:
             res.set_node(t_id(n), t_node(self.get_node(n)))
-        for n in self:
-            for nid, e in self.get_edges(n):
-                res.add_edge(t_id(n), t_id(nid), t_edge(e))
+        for n, nid, e in self.get_edges():
+            res.add_edge(t_id(n), t_id(nid), t_edge(e))
         return res
