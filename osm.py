@@ -1,6 +1,6 @@
 #! /usr/bin/python3
 """
-    Usage: osm.py <inputfile> [<outputfile>]
+    Usage: osm.py <inputfile>
 """
 from collections import Counter
 import itertools
@@ -165,7 +165,7 @@ def load_graph(filename):
 
 if __name__ == '__main__':
     from docopt import docopt
-    arguments = docopt(__doc__, version="osm data loader 0.1")
+    arguments = docopt(__doc__, version="osm data analyser")
     osmhandler = OSMHandler()
     parser = sax.make_parser()
     parser.setContentHandler(osmhandler)
@@ -180,6 +180,3 @@ if __name__ == '__main__':
     print("Total ways", len(osmhandler.ways))
     print("Total graph nodes", len(osmhandler.graph))
     print(osmhandler.graph)
-    if arguments['<outputfile>' ]:
-        import waysdb
-        waysdb.store_file(osmhandler.graph, arguments['<outputfile>'])

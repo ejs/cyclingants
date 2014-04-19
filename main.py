@@ -1,8 +1,9 @@
 #! /usr/bin/python3
 """
     Usage:
-        main.py osm <inputfile> [<outputfile>]
-        main.py pickle <inputfile> [<outputfile>]
+        main.py osm <osmfile> [<gpxfile>]
+        main.py makepickle <osmfile> <picklefile>
+        main.py usepickle <picklefile> [<gpxfile>]
 """
 from collections import defaultdict
 
@@ -11,6 +12,8 @@ import analysis
 from display import GPXOutput
 from graph import Graph
 import graphtools
+import osm
+import waysdb
 
 
 def osm_graph_to_aco_graph(graph):
@@ -33,7 +36,7 @@ def set_up_analyisis(graph):
 def display_analysis(analysis):
     if analysis:
         print()
-        for a in analyisis:
+        for a in analysis:
             try:
                 res = "{}".format(a)
                 if res != "None":
@@ -42,34 +45,21 @@ def display_analysis(analysis):
                 pass
 
 
-def display(graph, start, distance, filename):
+def display(filename, graph, start, distance):
     sink = GPXOutput()
     sink.add_points(*list({p for w in ways for n in w['nodes'] for p in (n.start, n.stop)}))
     sink.add_track([pos[n] for n in graphtools.most_marked_route(graph, start, distance)])
     sink.save_to_file(filename)
 
 
-def load_graph(config):
-    # TODO: check to see if I can use docopt to avoid manipulating the imports like this
-    if config['osm']:
-        import osm as source
-    elif config['pickle']:
-        import waysdb as source
-        from osm import RouteIntersection, RouteEdge
-    return osm_graph_to_aco_graph(source.load_graph(config['<inputfile>']))
-
-
-if __name__ == '__main__':
-    from docopt import docopt
-    config = docopt(__doc__, version="Cycling Ants 0.1")
-    graph = load_graph(config)
+def runOnGraph(graph):
     starting_points = graph.find_most_connected_nodes()
     print("start", starting_points)
-    analyisis = set_up_analyisis(graph)
+    evaluation = set_up_analyisis(graph)
     max_distance = 100
+    AntFactory = lambda p: BasicAnt(p, max_distance, 30)
     try:
-        AntFactory = lambda p: BasicAnt(p, max_distance, 30)
-        result = run_on_graph(graph, starting_points, 300, 20, AntFactory, *analyisis)
+        result = run_on_graph(graph, starting_points, 300, 20, AntFactory, *evaluation)
     except KeyboardInterrupt:
         pass
     except Exception as e:
@@ -77,6 +67,39 @@ if __name__ == '__main__':
         print(e)
         print()
     else:
-        if 'outputfile' in config:
-            display(graph, starting_points[0], max_distance, config['<outputfile>'])
-    display_analysis(analysis)
+        display_analysis(evaluation)
+        return graph, starting_points[0], max_distance
+    return None
+
+
+def osmtogpx(osmfile, gpxfile=None):
+    osmgraph = osm.load_graph(osmfile)
+    acograph = osm_graph_to_aco_graph(osmgraph)
+    result = runOnGraph(acograph)
+    if result and gpxfile:
+        display(gpxfile, *result)
+
+
+def osmtopickle(osmfile, picklefile):
+    osmgraph = osm.load_graph(osmfile)
+    if picklefile:
+        waysdb.store_graph(osmgraph, picklefile)
+
+
+def pickletogpx(picklefile, gpxfile=None):
+    osmgraph = waysdb.load_graph(picklefile)
+    acograph = osm_graph_to_aco_graph(osmgraph)
+    result = runOnGraph(acograph,)
+    if result and gpxfile:
+        display(gpxfile, *result)
+
+
+if __name__ == '__main__':
+    from docopt import docopt
+    config = docopt(__doc__, version="Cycling Ants 0.1")
+    if config['osm']:
+        osmtogpx(config['<osmfile>'], config['<gpxfile>'])
+    elif config['makepickle' ]:
+        osmtopickle(config['<osmfile>'], config['<picklefile>'])
+    elif config['usepickle']:
+        pickletogpx(config['<picklefile>'], config['<gpxfile>'])
