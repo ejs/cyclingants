@@ -6,7 +6,7 @@ import graph
 class TestGraph(unittest.TestCase):
     def test_empty_graph(self):
         g = graph.Graph()
-        self.assertEqual(1, 1)
+        self.assertEqual(len(g), 0)
 
     def test_add_node_to_graph(self):
         g = graph.Graph()

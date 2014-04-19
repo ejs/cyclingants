@@ -1,7 +1,4 @@
 import pickle
-import osm
-
-from osm import RouteIntersection, RouteEdge
 
 
 def store_graph(ways, dbfilename):

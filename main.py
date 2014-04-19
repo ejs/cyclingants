@@ -5,15 +5,27 @@
         main.py makepickle <osmfile> <picklefile>
         main.py usepickle <picklefile> [<gpxfile>]
 """
-from collections import defaultdict
-
 from aco import run_on_graph, BasicAnt, ACOEdge
 import analysis
 from display import GPXOutput
-from graph import Graph
-import graphtools
 import osm
 import waysdb
+
+
+def most_marked_route(graph, start, max_distance):
+    visited = set()
+    distance = 0
+    node = start
+    while distance < max_distance:
+        yield node
+        visited.add(node)
+        try:
+            options = [(n, e) for n, e in graph.get_edges(node) if n not in visited]
+            edge = max(options, key=lambda e:e[1].pheromones)
+        except ValueError: # if there are no good choices stop looking
+            break
+        node = edge[0]
+        distance += edge[1].cost
 
 
 def osm_graph_to_aco_graph(graph):
@@ -47,18 +59,17 @@ def display_analysis(analysis):
 
 def display(filename, graph, start, distance):
     sink = GPXOutput()
-    sink.add_track([graph.get_node(n).position for n in graphtools.most_marked_route(graph, start, distance)])
+    sink.add_track([graph.get_node(n).position for n in most_marked_route(graph, start, distance)])
     sink.save_to_file(filename)
 
 
-def runOnGraph(graph):
+def runOnGraph(graph, max_distance=100):
     starting_points = graph.find_most_connected_nodes()
     print("start", starting_points)
     evaluation = set_up_analyisis(graph)
-    max_distance = 100
     AntFactory = lambda p: BasicAnt(p, max_distance, 30)
     try:
-        result = run_on_graph(graph, starting_points, 300, 20, AntFactory, *evaluation)
+        result = run_on_graph(graph, starting_points, 300, 1, AntFactory, *evaluation)
     except KeyboardInterrupt:
         pass
     except Exception as e:
@@ -67,7 +78,7 @@ def runOnGraph(graph):
         print()
     else:
         display_analysis(evaluation)
-        return graph, starting_points[0], max_distance
+        return graph, starting_points[0]
     return None
 
 
@@ -76,7 +87,7 @@ def osmtogpx(osmfile, gpxfile=None):
     acograph = osm_graph_to_aco_graph(osmgraph)
     result = runOnGraph(acograph)
     if result and gpxfile:
-        display(gpxfile, *result)
+        display(gpxfile, *result, max_distance=100)
 
 
 def osmtopickle(osmfile, picklefile):
@@ -88,9 +99,9 @@ def osmtopickle(osmfile, picklefile):
 def pickletogpx(picklefile, gpxfile=None):
     osmgraph = waysdb.load_graph(picklefile)
     acograph = osm_graph_to_aco_graph(osmgraph)
-    result = runOnGraph(acograph,)
+    result = runOnGraph(acograph)
     if result and gpxfile:
-        display(gpxfile, *result)
+        display(gpxfile, *result, max_distance=100)
 
 
 if __name__ == '__main__':

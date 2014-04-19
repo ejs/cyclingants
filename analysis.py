@@ -1,8 +1,3 @@
-from collections import Counter
-
-from sizing import total_size
-
-
 class StubAnaliser:
     def __init__(self, graph):
         pass
@@ -88,4 +83,3 @@ class GraphOverview(StubAnaliser):
         print("Interesting nodes", sum(1 for n in graph if graph.get_node(n).interest))
         print("Connected components", graph.connected_components())
         print("Longest edge", max(e.cost for _, _, e in graph.get_edges()))
-

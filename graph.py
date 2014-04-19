@@ -1,4 +1,4 @@
-from collections import Counter, defaultdict
+from collections import defaultdict
 
 
 def bag():
@@ -50,7 +50,6 @@ class Graph:
             return [(nid, e) for nid, es in self.node_links[fid].items() for e in es]
         else:
             return [(f, nid, e) for f in self for nid, es in self.node_links[f].items() for e in es]
-
 
     def clean(self):
         for n in list(self):
@@ -120,7 +119,6 @@ class Graph:
 
     def connected_components(self):
         """ Use union find to check whole graph in linear time"""
-        # TODO: move this into the graph code
         print(len(self.node_info))
         print(len(self.node_links))
         nodes = {nid:None for nid in self}

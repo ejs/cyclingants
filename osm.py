@@ -3,8 +3,7 @@
     Usage: osm.py <inputfile>
 """
 from collections import Counter
-import itertools
-from math import hypot, acos, sin, cos, radians
+from math import acos, sin, cos, radians
 import xml.sax as sax
 from xml.sax.handler import ContentHandler
 
@@ -72,6 +71,7 @@ class RouteIntersection:
     def __str__(self):
         return "Intersection {} ({} to {}) cost {}, interest {}".format(self.nid, self.start, self.stop, self.cost_out, self.interest)
 
+
 class RouteEdge:
     intersection = False
 
@@ -80,7 +80,6 @@ class RouteEdge:
         self.stop = nodes[-1].lat, nodes[-1].lon
         self.cost_out = sum(n1.cost_to(n2) for n1, n2 in zip(nodes, nodes[1:]))
         self.cost_back = sum(n2.cost_to(n1) for n1, n2 in zip(nodes, nodes[1:]))
-        # these have to exclude the intersection nodes to avoid double counting
         self.interest = sum(n.interest for n in nodes[1:-1])
         self.nid = [int(n.nid) for n in nodes[1:-1]]
         self.contains = [int(n.nid) for n in nodes[1:-1]]
@@ -89,12 +88,12 @@ class RouteEdge:
     def __str__(self):
         return "Route Edge {} ({} to {}) cost {}, interest {}".format(self.nid, self.start, self.stop, self.cost_out, self.interest)
 
+
 class OSMHandler(ContentHandler):
     def __init__(self):
         self.node = None
         self.way = None
         self.ways = []
-        # TODO: store nodes in simple db to simplify access. If haloing with a square then SQLite should be fine
         self.nodes = {}
         self.tags = {}
         self.nds = []
