@@ -199,11 +199,19 @@ class OSMHandler(ContentHandler):
             self.way = None
 
     def endDocument(self):
-        box_size = 0.0001
+        print("Done loading, starting processing", time()-self.start)
+        count, hits = 0, 0
+        box_size = 0.002
         for lat, lon, interest, rest in self.db.load_intersting_non_route():
             closest, _ = self.db.load_closest_way(lat, lon, box_size)
             if closest:
                 self.db.add_flags(closest, interest, rest)
+                hits += 1
+            self.count += 1
+            count += 1
+            if not self.count % 1000:
+                print(count, 'haloing', time()-self.start)
+        print("Done Haloing, matched ", hits/count, " % ", time() - self.start)
         intersections = set(self.db.load_intersections())
         for n in intersections:
             self.graph.set_node(n, RouteIntersection(self.db.get_node(n)))
@@ -211,6 +219,7 @@ class OSMHandler(ContentHandler):
             for a, edge, b in nodes_to_edges(intersections, map(self.db.get_node, way['nodes'])):
                 self.graph.add_edge(a, b, RouteEdge(edge))
         self.graph.trim()
+        print("Done processing", time() - self.start)
 
 
 def nodes_to_edges(intersections, nodes):
