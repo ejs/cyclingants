@@ -71,6 +71,11 @@ class NodeDB:
             rest INTEGER DEFAULT 0,
             is_way INTEGER DEFAULT 0,
             closest_way INTEGER DEFAULT 0)""")
+        dbc.execute("CREATE INDEX lat ON nodes (lat)")
+        dbc.execute("CREATE INDEX lon ON nodes (lon)")
+        dbc.execute("CREATE INDEX rest ON nodes (rest)")
+        dbc.execute("CREATE INDEX interest ON nodes (interest)")
+        dbc.execute("CREATE INDEX is_way ON nodes (is_way)")
         self.db.commit()
 
     def create_node(self, nodeid, node):
@@ -95,6 +100,29 @@ class NodeDB:
         dbc = self.db.cursor()
         for nid in dbc.execute('SELECT id FROM nodes WHERE is_way>1'):
             yield nid[0]
+
+    def load_intersting_non_route(self):
+        dbc = self.db.cursor()
+        for node in dbc.execute('SELECT lat, lon, interest, rest FROM nodes WHERE (rest>0 OR interest>0) AND is_way=0'):
+            yield node
+
+    def load_closest_way(self, lat, lon, box_size=0.001):
+        dbc = self.db.cursor()
+        choice, min_distance = None, None
+        for nlat, nlon, nid in dbc.execute('SELECT lat, lon, id FROM nodes WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? AND is_way>1', (lat-box_size, lat+box_size, lon-box_size, lon+box_size)):
+            distance = distance_between(lat, lon, nlat, nlon)
+            if min_distance is None or distance < min_distance:
+                choice, min_distance = nid, distance
+        return choice, min_distance
+
+    def add_flags(self, nodeid, interest, rest):
+        dbc = self.db.cursor()
+        dbc.execute('SELECT interest, rest FROM nodes WHERE id=?', (nodeid, ))
+        row = dbc.fetchone()
+        newinterest = row[0] +interest
+        newrest = row[1] or rest
+        dbc.execute('UPDATE nodes SET rest=?, interest=? WHERE id=?', (newrest, newinterest, nodeid))
+        self.db.commit()
 
 
 class RouteIntersection:
@@ -171,6 +199,11 @@ class OSMHandler(ContentHandler):
             self.way = None
 
     def endDocument(self):
+        box_size = 0.0001
+        for lat, lon, interest, rest in self.db.load_intersting_non_route():
+            closest, _ = self.db.load_closest_way(lat, lon, box_size)
+            if closest:
+                self.db.add_flags(closest, interest, rest)
         intersections = set(self.db.load_intersections())
         for n in intersections:
             self.graph.set_node(n, RouteIntersection(self.db.get_node(n)))
