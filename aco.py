@@ -1,7 +1,7 @@
 #! /usr/bin/python3
 from bisect import bisect
 from collections import Counter
-from itertools import accumulate
+from itertools import accumulate, starmap
 from random import choice, random
 
 
@@ -33,7 +33,7 @@ class Swarm:
     def run_generation(self, graph, starting_points):
         for _ in range(self.size):
             ant = self.Ant(choice(starting_points), self.max_age, self.max_tiredness, self.alpha, self.beta)
-            ant.search(graph)
+            ant(graph)
             yield ant
 
     def __call__(self, graph, starting_points, rounds, *analytics):
@@ -43,8 +43,9 @@ class Swarm:
                 edge.evaporate(self.evaporation)
             for ant in ants:
                 for a, b in ant:
+                    quality = ant.evaluate_route()
                     for edge in graph.get_edges(a, b):
-                        edge.deposit(ant.deposition())
+                        edge.deposit(quality)
             for an in analytics:
                 an.generation(graph, i, ants)
         return graph
@@ -52,7 +53,6 @@ class Swarm:
 
 class BasicAnt:
     def __init__(self, position, max_age, max_tiredness, alpha, beta):
-        self.position = position
         self.last_position = None
         self.moves = [position]
         self.max_age = max_age
@@ -60,36 +60,37 @@ class BasicAnt:
         self.age = 0
         self.tiredness = 0
         self.interest = 0
-        self.dead = False
         self.alpha = alpha
         self.beta = beta
 
-    def search(self, graph):
-        while self.alive():
-            self.move(graph)
-        self.simplify_journy(graph)
+    def __call__(self, graph):
+        self.travel(graph)
+        self.simplify_journy()
+        self.age = sum(graph.get_edges(a, b)[0].cost for a, b in self)
+        self.interest = sum(graph.get_edges(a, b)[0].interest for a, b in self) + sum(graph[a].interest for a, _ in self)
 
-    def move(self, graph):
+    def travel(self, graph):
         try:
-            next_id, next_node, edge_traveled = self.pick_next(graph)
+            while self.age < self.max_age and self.tiredness < self.max_tiredness:
+                next_id, next_node, edge_traveled = self.pick_next(graph)
+                self.age += edge_traveled.cost
+                if edge_traveled.rest or next_node.rest:
+                    self.tiredness = 0
+                else:
+                    self.tiredness += edge_traveled.cost
+                self.last_position = self.moves[-1]
+                self.moves.append(next_id)
         except IndexError:
-            self.dead = True
-        else:
-            self.age += edge_traveled.cost
-            if edge_traveled.rest or next_node.rest:
-                self.tiredness = 0
-            else:
-                self.tiredness += edge_traveled.cost
-            self.interest += edge_traveled.interest + next_node.interest
-            self.last_position = self.position
-            self.position = next_id
-            self.moves.append(next_id)
+            pass
 
     def pick_next(self, graph):
-        valid_choices = [(to, graph[to], e) for to, e in graph.get_edges(self.position) if to != self.last_position]
-        return valid_choices[biased_random(self.evaluate(nid, nnd, e) for nid, nnd, e in valid_choices)]
+        valid_choices = [(to, graph[to], e)
+            for to, e in graph.get_edges(self.moves[-1])
+                if to != self.last_position]
+        choice = biased_random(starmap(self.evaluate_edge, valid_choices))
+        return valid_choices[choice]
 
-    def simplify_journy(self, graph):
+    def simplify_journy(self):
         node_visits = Counter(self.moves)
         while node_visits.most_common(1)[0][1] > 1:
             # I'm not sure how this can need doing more than once but apparently it can
@@ -110,22 +111,15 @@ class BasicAnt:
                         node_visits[n] -= 1
             self.moves = loopless
             node_visits = Counter(self.moves)
-        self.age = sum(graph.get_edges(a, b)[0].cost for a, b in self)
-        self.interest = sum(graph.get_edges(a, b)[0].interest for a, b in self) + sum(graph[a].interest for a, _ in self)
 
     def __iter__(self):
         for a, b in zip(self.moves, self.moves[1:]):
             yield a, b
 
-    def deposition(self):
+    def evaluate_route(self):
         return self.interest*(self.age/self.max_age)
 
-    def alive(self):
-        return not self.dead and self.age < self.max_age and self.tiredness < self.max_tiredness
-
-    def evaluate(self, next_id, next_node, edge):
-        if next_id == self.last_position:
-            return 0 # No interest in returning to the last position
+    def evaluate_edge(self, next_id, next_node, edge):
         return edge.pheromones**self.alpha * (next_node.interest+edge.interest+(1 if edge.rest or next_node.rest else 0)+1)**self.beta
 
 
