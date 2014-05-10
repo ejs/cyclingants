@@ -122,8 +122,6 @@ class Graph:
 
     def connected_components(self):
         """ Use union find to check whole graph in linear time"""
-        print(len(self.node_info))
-        print(len(self.node_links))
         nodes = {nid:nid for nid in self}
         def find_parent(n):
             if nodes[n] != n:
