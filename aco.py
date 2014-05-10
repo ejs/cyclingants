@@ -86,7 +86,7 @@ class BasicAnt:
             self.moves = loopless
             node_visits = Counter(self.moves)
         self.age = sum(graph.get_edges(a, b)[0].cost for a, b in self)
-        self.interest = sum(graph.get_edges(a, b)[0].interest for a, b in self)
+        self.interest = sum(graph.get_edges(a, b)[0].interest for a, b in self) + sum(graph[a].interest for a, _ in self)
 
     def __iter__(self):
         for a, b in zip(self.moves, self.moves[1:]):
