@@ -83,7 +83,7 @@ def osmtogpx(osmfile, gpxfile=None):
     acograph = osm_graph_to_aco_graph(osmgraph)
     result = runOnGraph(acograph)
     if result and gpxfile:
-        display(gpxfile, *result, max_distance=100)
+        display(gpxfile, *result, distance=100)
 
 
 def osmtopickle(osmfile, picklefile):
@@ -97,7 +97,7 @@ def pickletogpx(picklefile, gpxfile=None):
     acograph = osm_graph_to_aco_graph(osmgraph)
     result = runOnGraph(acograph)
     if result and gpxfile:
-        display(gpxfile, *result, max_distance=100)
+        display(gpxfile, *result, distance=100)
 
 
 if __name__ == '__main__':
