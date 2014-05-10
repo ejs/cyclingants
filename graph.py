@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 
 def bag():
@@ -32,7 +32,10 @@ class Graph:
         return len(self.node_info)
 
     def __iter__(self):
-        return iter(self.node_info)
+        return iter(self.node_links)
+
+    def __getitem__(self, nodeid):
+        return self.node_info[nodeid]
 
     def add_edge(self, fid, tid, info):
         if fid not in self.node_info or tid not in self.node_info:
@@ -121,12 +124,12 @@ class Graph:
         """ Use union find to check whole graph in linear time"""
         print(len(self.node_info))
         print(len(self.node_links))
-        nodes = {nid:None for nid in self}
+        nodes = {nid:nid for nid in self}
+        def find_parent(n):
+            if nodes[n] != n:
+                nodes[n] = find_parent(nodes[n])
+            return nodes[n]
         for f, t, _ in self.get_edges():
-            while nodes[f]:
-                f = nodes[f]
-            while nodes[t]:
-                t = nodes[t]
-            if t != f:
-                nodes[t] = f
-        return sum(1 for parent in nodes.values() if not parent)
+            nodes[find_parent(f)] = find_parent(t)
+        shape = Counter(find_parent(n) for n in nodes)
+        return sum(1 for node, parent in nodes.items() if not node != parent)
