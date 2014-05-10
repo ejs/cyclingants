@@ -51,7 +51,6 @@ class Swarm:
 
 class BasicAnt:
     def __init__(self, position, max_age, max_tiredness, alpha, beta):
-        self.last_position = None
         self.moves = [position]
         self.max_age = max_age
         self.max_tiredness = max_tiredness
@@ -65,26 +64,23 @@ class BasicAnt:
         self.travel(graph)
         self.simplify_journy()
         self.age = sum(graph.get_edges(a, b)[0].cost for a, b in self)
-        self.interest = sum(graph.get_edges(a, b)[0].interest for a, b in self) + sum(graph[a].interest for a, _ in self)
+        self.interest = sum(graph.get_edges(a, b)[0].interest+graph[a].interest for a, b in self)
 
     def travel(self, graph):
         try:
-            while self.age < self.max_age and self.tiredness < self.max_tiredness:
-                next_id, next_node, edge_traveled = self.pick_next(graph)
-                self.age += edge_traveled.cost
-                if edge_traveled.rest or next_node.rest:
-                    self.tiredness = 0
-                else:
-                    self.tiredness += edge_traveled.cost
-                self.last_position = self.moves[-1]
-                self.moves.append(next_id)
+            age, tiredness = 0, 0
+            last = None
+            while age < self.max_age and tiredness < self.max_tiredness:
+                nid, node, edge = self.pick_next(graph, last, self.moves[-1])
+                age += edge.cost
+                tiredness = 0 if edge.rest or node.rest else tiredness+edge.cost
+                last = self.moves[-1]
+                self.moves.append(nid)
         except IndexError:
             pass
 
-    def pick_next(self, graph):
-        valid_choices = [(to, graph[to], e)
-            for to, e in graph.get_edges(self.moves[-1])
-                if to != self.last_position]
+    def pick_next(self, graph, last, current):
+        valid_choices = [(to, graph[to], e) for to, e in graph.get_edges(current) if to != last]
         choice = biased_random(starmap(self.evaluate_edge, valid_choices))
         return valid_choices[choice]
 
@@ -118,7 +114,8 @@ class BasicAnt:
         return self.interest*(self.age/self.max_age)
 
     def evaluate_edge(self, next_id, next_node, edge):
-        return edge.pheromones**self.alpha * (next_node.interest+edge.interest+(1 if edge.rest or next_node.rest else 0)+1)**self.beta
+        local_interest = 1+next_node.interest+edge.interest+(1 if edge.rest or next_node.rest else 0)
+        return edge.pheromones**self.alpha * local_interest**self.beta
 
 
 def biased_random(chances):
