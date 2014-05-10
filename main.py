@@ -5,7 +5,7 @@
         main.py makepickle <osmfile> <picklefile>
         main.py usepickle <picklefile> [<gpxfile>]
 """
-from aco import run_on_graph, BasicAnt, ACOEdge
+from aco import BasicAnt, ACOEdge, Swarm
 import analysis
 from display import GPXOutput
 import osm
@@ -63,13 +63,13 @@ def display(filename, graph, start, distance):
     sink.save_to_file(filename)
 
 
-def runOnGraph(graph, max_distance=100):
+def runOnGraph(graph, max_distance=200):
     starting_points = graph.find_most_connected_nodes()
     print("start", starting_points)
     evaluation = set_up_analyisis(graph)
-    AntFactory = lambda p: BasicAnt(p, max_distance, 30)
+    swarm = Swarm(100, max_distance, 100, 1, 2, 0.99, BasicAnt)
     try:
-        result = run_on_graph(graph, starting_points, 300, 1, AntFactory, *evaluation)
+        result = swarm(graph, starting_points, 20, *evaluation)
     except KeyboardInterrupt:
         pass
     else:

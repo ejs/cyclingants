@@ -7,28 +7,51 @@ from random import choice, random
 
 class ACOEdge:
     __slots__ = ["cost", "interest", "pheromones", "rest"]
-    p = 0.99 # TODO: tweak this
-    # Question: should this be linked to the ants?
-
     def __init__(self, cost, interest, rest):
         self.cost = cost
         self.interest = interest
         self.pheromones = 1
         self.rest = rest
 
-    def evaporate(self):
-        self.pheromones *= self.p
+    def evaporate(self, rate):
+        self.pheromones *= rate
 
     def deposit(self, amount):
         self.pheromones += amount
 
 
-class BasicAnt:
-    # TODO: tweak these
-    alpha = 1
-    beta = 2
+class Swarm:
+    def __init__(self, size, max_age, max_tiredness, alpha, beta, evaporation, Ant):
+       self.max_age = max_age
+       self.max_tiredness = max_tiredness
+       self.size = size
+       self.alpha = alpha
+       self.beta = beta
+       self.Ant = Ant
+       self.evaporation = evaporation
 
-    def __init__(self, position, max_age, max_tiredness):
+    def run_generation(self, graph, starting_points):
+        for _ in range(self.size):
+            ant = self.Ant(choice(starting_points), self.max_age, self.max_tiredness, self.alpha, self.beta)
+            ant.search(graph)
+            yield ant
+
+    def __call__(self, graph, starting_points, rounds, *analytics):
+        for i in range(rounds):
+            ants = list(self.run_generation(graph, starting_points))
+            for _, _, edge in graph.get_edges():
+                edge.evaporate(self.evaporation)
+            for ant in ants:
+                for a, b in ant:
+                    for edge in graph.get_edges(a, b):
+                        edge.deposit(ant.deposition())
+            for an in analytics:
+                an.generation(graph, i, ants)
+        return graph
+
+
+class BasicAnt:
+    def __init__(self, position, max_age, max_tiredness, alpha, beta):
         self.position = position
         self.last_position = None
         self.moves = [position]
@@ -38,6 +61,8 @@ class BasicAnt:
         self.tiredness = 0
         self.interest = 0
         self.dead = False
+        self.alpha = alpha
+        self.beta = beta
 
     def search(self, graph):
         while self.alive():
@@ -109,23 +134,3 @@ def biased_random(chances):
     cumulative_dis = list(accumulate(chances))
     roll = random() * cumulative_dis[-1]
     return bisect(cumulative_dis, roll) if roll else 0
-
-
-def run_ant(Ant, graph, starting_point):
-    a = Ant(starting_point)
-    a.search(graph)
-    return a
-
-
-def run_on_graph(graph, starting_points, number_of_ants, rounds, Ant, *analytics):
-    for i in range(rounds):
-        ants = [run_ant(Ant, graph, choice(starting_points)) for i in range(number_of_ants)]
-        for _, _, edge in graph.get_edges():
-            edge.evaporate()
-        for ant in ants:
-            for a, b in ant:
-                for edge in graph.get_edges(a, b):
-                    edge.deposit(ant.deposition())
-        for an in analytics:
-            an.generation(graph, i, ants)
-    return graph
