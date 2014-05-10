@@ -4,6 +4,8 @@
 """
 from collections import Counter
 from math import acos, sin, cos, radians
+from time import time
+import sqlite3
 import xml.sax as sax
 from xml.sax.handler import ContentHandler
 
@@ -31,11 +33,11 @@ def distance_between(alat, alon, blat, blon):
 class Node:
     __slots__ = ["lat", "lon", "interest", "nid", "rest", "way"]
 
-    def __init__(self, lat, lon, nid):
+    def __init__(self, lat, lon, nid, interest=0, rest=False):
         self.lat = float(lat)
         self.lon = float(lon)
-        self.interest = 0
-        self.rest = False
+        self.interest = interest
+        self.rest = rest
         self.nid = int(nid)
         self.way = False
 
@@ -57,11 +59,45 @@ class Node:
             return None
 
 
-class RouteIntersection:
-    intersection = True
-    cost_out = 0
-    cost_back = 0
+class NodeDB:
+    def __init__(self, target):
+        self.db = sqlite3.connect(target)
+        dbc = self.db.cursor()
+        dbc.execute("""CREATE TABLE nodes (
+            id INTEGER PRIMARY KEY,
+            lat REAL,
+            lon REAL,
+            interest INTEGER DEFAULT 0,
+            rest INTEGER DEFAULT 0,
+            is_way INTEGER DEFAULT 0,
+            closest_way INTEGER DEFAULT 0)""")
+        self.db.commit()
 
+    def create_node(self, nodeid, node):
+        dbc = self.db.cursor()
+        dbc.execute('INSERT INTO nodes VALUES (?, ?, ?, ?, ?, 0, 0)',
+                        (node.nid, node.lat, node.lon, node.interest, node.rest))
+        self.db.commit()
+
+    def get_node(self, nodeid):
+        dbc = self.db.cursor()
+        dbc.execute('SELECT lat, lon, id, interest, rest FROM nodes WHERE id=?', (nodeid, ))
+        return Node(*dbc.fetchone())
+
+    def mark_as_route(self, nodeid):
+        dbc = self.db.cursor()
+        dbc.execute('SELECT is_way FROM nodes WHERE id=?', (nodeid, ))
+        newval = dbc.fetchone()[0] +1
+        dbc.execute('UPDATE nodes SET is_way=? WHERE id=?', (newval, nodeid))
+        self.db.commit()
+
+    def load_intersections(self):
+        dbc = self.db.cursor()
+        for nid in dbc.execute('SELECT id FROM nodes WHERE is_way>1'):
+            yield nid[0]
+
+
+class RouteIntersection:
     def __init__(self, node):
         self.start = self.stop = self.position = node.lat, node.lon
         self.interest = node.interest
@@ -73,20 +109,14 @@ class RouteIntersection:
 
 
 class RouteEdge:
-    intersection = False
-
     def __init__(self, nodes):
-        self.start = nodes[0].lat, nodes[0].lon
-        self.stop = nodes[-1].lat, nodes[-1].lon
         self.cost_out = sum(n1.cost_to(n2) for n1, n2 in zip(nodes, nodes[1:]))
-        self.cost_back = sum(n2.cost_to(n1) for n1, n2 in zip(nodes, nodes[1:]))
         self.interest = sum(n.interest for n in nodes[1:-1])
         self.nid = [int(n.nid) for n in nodes[1:-1]]
-        self.contains = [int(n.nid) for n in nodes[1:-1]]
         self.rest = any(n.rest for n in nodes[1:-1])
 
     def __str__(self):
-        return "Route Edge {} ({} to {}) cost {}, interest {}".format(self.nid, self.start, self.stop, self.cost_out, self.interest)
+        return "Route Edge {}, cost {}, interest {}".format(self.nid, self.cost_out, self.interest)
 
 
 class OSMHandler(ContentHandler):
@@ -94,20 +124,20 @@ class OSMHandler(ContentHandler):
         self.node = None
         self.way = None
         self.ways = []
-        self.nodes = {}
         self.tags = {}
         self.nds = []
         self.flag = True
-        self.blacklist = {'created_by', 'source'}
         self.graph = Graph()
+        self.db = NodeDB(':memory:')
+        self.count = 0
+        self.start = time()
 
     def startElement(self, name, attributes):
         if name == 'node':
             self.node = (int(attributes['id']), Node(attributes['lat'], attributes['lon'], attributes['id']))
             self.tags = {}
         elif name == 'tag':
-            if attributes['k'] not in self.blacklist:
-                self.tags[attributes['k']] = attributes['v']
+            self.tags[attributes['k']] = attributes['v']
         elif name =='way':
             self.way = {'id':int(attributes['id'])}
             self.nds = []
@@ -116,30 +146,38 @@ class OSMHandler(ContentHandler):
             self.nds.append(int(attributes['ref']))
 
     def endElement(self, name):
+        steps = 100000
         if name == 'node':
             self.node[1].apply_tags(self.tags)
             if self.tags.get('visible', 'true') != 'false':
-                self.nodes[int(self.node[0])] = self.node[1]
+                self.db.create_node(*self.node)
+                self.count += 1
+                if not self.count%steps:
+                    print(self.count, 'nodes', time()-self.start)
             self.node = None
             self.tags = {}
         elif name == 'way':
             self.way['nodes'] = self.nds
             self.way['tags'] = self.tags
             if travelable_route(self.way, self.tags):
+                for node in set(self.nds):
+                    self.db.mark_as_route(node)
                 self.ways.append(self.way)
+                self.count += 1
+                if not self.count%steps:
+                    print(self.count, 'ways', time()-self.start)
             self.nds = []
             self.tags = {}
             self.way = None
 
     def endDocument(self):
-        self.way_nodes = Counter(n for way in self.ways for n in set(way['nodes']))
-        intersections = set(node for node, count in self.way_nodes.items() if count > 1)
+        intersections = set(self.db.load_intersections())
         for n in intersections:
-            node = RouteIntersection(self.nodes[n])
-            self.graph.set_node(n, node)
+            self.graph.set_node(n, RouteIntersection(self.db.get_node(n)))
         for way in self.ways:
-            for a, edge, b in nodes_to_edges(intersections, (self.nodes[nd] for nd in way['nodes'])):
+            for a, edge, b in nodes_to_edges(intersections, map(self.db.get_node, way['nodes'])):
                 self.graph.add_edge(a, b, RouteEdge(edge))
+        self.graph.trim()
 
 
 def nodes_to_edges(intersections, nodes):
@@ -149,6 +187,7 @@ def nodes_to_edges(intersections, nodes):
         if point.nid in intersections:
             if previous:
                 yield previous, edge, point.nid
+                yield point.nid, edge[::-1], previous
             previous, edge = point.nid, [point]
 
 
@@ -169,13 +208,8 @@ if __name__ == '__main__':
     parser = sax.make_parser()
     parser.setContentHandler(osmhandler)
     parser.parse(arguments['<inputfile>'])
-    print("Node size {0:,d}kb".format(total_size(osmhandler.nodes)//1024))
     print("Way size {0:,d}kb".format(total_size(osmhandler.ways)//1024))
-    print("Graph size {0:,d}".format(total_size(osmhandler.graph)))
-    print("Rest points", sum(1 for n in osmhandler.nodes.values() if n.rest)) # 38 for all of south yorkshire seems far too low
-    print("Intersting points", sum(1 for n in osmhandler.nodes.values() if n.interest)) # 38 for all of south yorkshire seems far too low
-    print("Total waypoints", len(osmhandler.way_nodes))
-    print("Total nodes", len(osmhandler.nodes))
     print("Total ways", len(osmhandler.ways))
     print("Total graph nodes", len(osmhandler.graph))
+    print("Connected components", osmhandler.graph.connected_components())
     print(osmhandler.graph)
