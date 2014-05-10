@@ -72,10 +72,6 @@ def runOnGraph(graph, max_distance=100):
         result = run_on_graph(graph, starting_points, 300, 1, AntFactory, *evaluation)
     except KeyboardInterrupt:
         pass
-    except Exception as e:
-        print("Something broke")
-        print(e)
-        print()
     else:
         display_analysis(evaluation)
         return graph, starting_points[0]
