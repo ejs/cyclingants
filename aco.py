@@ -46,20 +46,23 @@ class BasicAnt:
 
     def move(self, graph):
         try:
-            to, next_position = self.pick_next(graph)
+            next_id, next_node, edge_traveled = self.pick_next(graph)
         except IndexError:
             self.dead = True
         else:
+            self.age += edge_traveled.cost
+            if edge_traveled.rest or next_node.rest:
+                self.tiredness = 0
+            else:
+                self.tiredness += edge_traveled.cost
+            self.interest += edge_traveled.interest + next_node.interest
             self.last_position = self.position
-            self.age += next_position.cost
-            self.tiredness = 0 if next_position.rest else self.tiredness+next_position.cost
-            self.interest += next_position.interest
-            self.position = to
-            self.moves.append(to)
+            self.position = next_id
+            self.moves.append(next_id)
 
     def pick_next(self, graph):
-        valid_choices = [(to, e) for to, e in graph.get_edges(self.position) if to != self.last_position]
-        return valid_choices[biased_random(self.evaluate(to, e) for to, e in valid_choices)]
+        valid_choices = [(to, graph[to], e) for to, e in graph.get_edges(self.position) if to != self.last_position]
+        return valid_choices[biased_random(self.evaluate(nid, nnd, e) for nid, nnd, e in valid_choices)]
 
     def simplify_journy(self, graph):
         node_visits = Counter(self.moves)
@@ -95,10 +98,10 @@ class BasicAnt:
     def alive(self):
         return not self.dead and self.age < self.max_age and self.tiredness < self.max_tiredness
 
-    def evaluate(self, next_id, edge):
+    def evaluate(self, next_id, next_node, edge):
         if next_id == self.last_position:
             return 0 # No interest in returning to the last position
-        return edge.pheromones**self.alpha * (edge.interest+(1 if edge.rest else 0)+1)**self.beta
+        return edge.pheromones**self.alpha * (next_node.interest+edge.interest+(1 if edge.rest or next_node.rest else 0)+1)**self.beta
 
 
 def biased_random(chances):
