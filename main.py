@@ -63,49 +63,45 @@ def display(filename, graph, start, distance):
     sink.save_to_file(filename)
 
 
-def runOnGraph(graph, max_distance=200):
+def graph_to_gpx(osmgraph, config):
+    max_distance = 200
+    graph = osm_graph_to_aco_graph(osmgraph)
     starting_points = graph.find_most_connected_nodes()
     print("start", starting_points)
     evaluation = set_up_analyisis(graph)
-    swarm = Swarm(100, max_distance, 100, 1, 2, 0.99, BasicAnt)
+    swarm = Swarm(100, max_distance, 100, 1, 2, 0.75, BasicAnt)
     try:
         result = swarm(graph, starting_points, 20, *evaluation)
     except KeyboardInterrupt:
         pass
     else:
         display_analysis(evaluation)
-        return graph, starting_points[0]
-    return None
+        if config['<gpxfile>']:
+            display(config['<gpxfile>'], graph, starting_points[0], distance=max_distance)
 
 
-def osmtogpx(osmfile, gpxfile=None):
-    osmgraph = osm.load_graph(osmfile)
-    acograph = osm_graph_to_aco_graph(osmgraph)
-    result = runOnGraph(acograph)
-    if result and gpxfile:
-        display(gpxfile, *result, distance=100)
+def osmtogpx(config):
+    osmgraph = osm.load_graph(config['<osmfile>'])
+    graph_to_gpx(osmgraph, config)
 
 
-def osmtopickle(osmfile, picklefile):
-    osmgraph = osm.load_graph(osmfile)
+def osmtopickle(config, picklefile):
+    osmgraph = osm.load_graph(config['<osmfile>'])
     if picklefile:
         waysdb.store_graph(osmgraph, picklefile)
 
 
-def pickletogpx(picklefile, gpxfile=None):
-    osmgraph = waysdb.load_graph(picklefile)
-    acograph = osm_graph_to_aco_graph(osmgraph)
-    result = runOnGraph(acograph)
-    if result and gpxfile:
-        display(gpxfile, *result, distance=100)
+def pickletogpx(config):
+    osmgraph = waysdb.load_graph(config['<picklefile>'])
+    graph_to_gpx(osmgraph, config)
 
 
 if __name__ == '__main__':
     from docopt import docopt
     config = docopt(__doc__, version="Cycling Ants 0.1")
     if config['osm']:
-        osmtogpx(config['<osmfile>'], config['<gpxfile>'])
+        osmtogpx(config)
     elif config['makepickle' ]:
-        osmtopickle(config['<osmfile>'], config['<picklefile>'])
+        osmtopickle(config)
     elif config['usepickle']:
-        pickletogpx(config['<picklefile>'], config['<gpxfile>'])
+        pickletogpx(config)
