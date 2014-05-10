@@ -31,16 +31,22 @@ class Swarm:
     def __call__(self, graph, starting_points, rounds, *analytics):
         for i in range(rounds):
             ants = list(self.run_generation(graph, starting_points))
-            for _, _, edge in graph.get_edges():
-                edge.evaporate(self.evaporation)
-            for ant in ants:
-                for a, b in ant:
-                    quality = ant.evaluate_route()
-                    for edge in graph.get_edges(a, b):
-                        edge.deposit(quality)
+            self.deposit(graph, ants)
+            self.evaporate(graph)
             for an in analytics:
                 an.generation(graph, i, ants)
         return graph
+
+    def deposit(self, graph, ants):
+        for ant in ants:
+            deposition = ant.evaluate_route()
+            for a, b in ant:
+                for edge in graph.get_edges(a, b):
+                    edge.pheromones += deposition
+
+    def evaporate(self, graph):
+        for _, _, edge in graph.get_edges():
+            edge.pheromones *= self.evaporation
 
 
 class BasicAnt:
