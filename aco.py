@@ -6,19 +6,11 @@ from random import choice, random
 
 
 class ACOEdge:
-    __slots__ = ["cost", "interest", "pheromones", "rest"]
     def __init__(self, cost, interest, rest):
         self.cost = cost
         self.interest = interest
         self.pheromones = 1
         self.rest = rest
-
-    def evaporate(self, rate):
-        self.pheromones *= rate
-
-    def deposit(self, amount):
-        self.pheromones += amount
-
 
 class Swarm:
     def __init__(self, size, max_age, max_tiredness, alpha, beta, evaporation, Ant):

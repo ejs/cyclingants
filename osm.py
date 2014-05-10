@@ -127,7 +127,7 @@ class NodeDB:
 
 class RouteIntersection:
     def __init__(self, node):
-        self.start = self.stop = self.position = node.lat, node.lon
+        self.position = node.lat, node.lon
         self.interest = node.interest
         self.nid = int(node.nid)
         self.rest = node.rest
@@ -154,7 +154,6 @@ class OSMHandler(ContentHandler):
         self.ways = []
         self.tags = {}
         self.nds = []
-        self.flag = True
         self.graph = Graph()
         self.db = NodeDB(':memory:')
         self.count = 0
