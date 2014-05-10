@@ -165,7 +165,7 @@ class OSMHandler(ContentHandler):
             self.node = (int(attributes['id']), Node(attributes['lat'], attributes['lon'], attributes['id']))
             self.tags = {}
         elif name == 'tag':
-            self.tags[attributes['k']] = attributes['v']
+            self.tags[attributes['k'].lower()] = attributes['v'].lower()
         elif name =='way':
             self.way = {'id':int(attributes['id'])}
             self.nds = []
