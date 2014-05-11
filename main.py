@@ -41,12 +41,11 @@ def display_analysis(analysis):
     if analysis:
         print()
         for a in analysis:
-            try:
-                res = "{}".format(a)
-                if res != "None":
-                    print(res)
-            except:
-                pass
+            if a:
+                try:
+                    print("{}".format(a))
+                except:
+                    pass
 
 
 def display(filename, graph, start, distance):

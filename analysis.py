@@ -8,6 +8,9 @@ class StubAnaliser:
     def result(self):
         return None
 
+    def __bool__(self):
+        return self.result() is not None
+
     def __str__(self):
         return "{}".format(self.result())
 
