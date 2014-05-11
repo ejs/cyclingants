@@ -2,7 +2,6 @@
 """
     Usage: osm.py <inputfile>
 """
-from collections import Counter
 from math import acos, sin, cos, radians
 from time import time
 import sqlite3
