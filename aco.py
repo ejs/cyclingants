@@ -6,11 +6,13 @@ from random import choice, random
 
 
 class ACOEdge:
-    def __init__(self, cost, interest, rest):
-        self.cost = cost
-        self.interest = interest
+    def __init__(self, wraps):
         self.pheromones = 1
-        self.rest = rest
+        self.wraps = wraps
+
+    def __getattr__(self, name):
+        return getattr(self.wraps, name)
+
 
 class Swarm:
     def __init__(self, size, max_age, max_tiredness, alpha, beta, evaporation, Ant):
@@ -23,11 +25,7 @@ class Swarm:
        self.evaporation = evaporation
 
     def setup_graph(self, graph):
-        def transform_edge(edge):
-            return ACOEdge(edge.cost_out, edge.interest, edge.rest)
-
-        g = graph.transform(t_edge=transform_edge)
-        return g
+        return graph.transform(t_edge=ACOEdge)
 
     def run_generation(self, graph, starting_points):
         for _ in range(self.size):
@@ -71,7 +69,7 @@ class BasicAnt:
     def __call__(self, graph):
         self.travel(graph)
         self.simplify_journy()
-        self.age = sum(graph.get_edges(a, b)[0].cost for a, b in self)
+        self.age = sum(graph.get_edges(a, b)[0].cost_out for a, b in self)
         self.interest = sum(graph.get_edges(a, b)[0].interest+graph[a].interest for a, b in self)
 
     def travel(self, graph):
@@ -80,8 +78,8 @@ class BasicAnt:
             last = None
             while age < self.max_age and tiredness < self.max_tiredness:
                 nid, node, edge = self.pick_next(graph, last, self.moves[-1])
-                age += edge.cost
-                tiredness = 0 if edge.rest or node.rest else tiredness+edge.cost
+                age += edge.cost_out
+                tiredness = 0 if edge.rest or node.rest else tiredness+edge.cost_out
                 last = self.moves[-1]
                 self.moves.append(nid)
         except IndexError:

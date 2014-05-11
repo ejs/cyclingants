@@ -25,7 +25,7 @@ def most_marked_route(graph, start, max_distance):
         except ValueError: # if there are no good choices stop looking
             break
         node = edge[0]
-        distance += edge[1].cost
+        distance += edge[1].cost_out
 
 
 def set_up_analyisis(graph):
