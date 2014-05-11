@@ -60,11 +60,10 @@ class BasicAnt:
         self.moves = [position]
         self.max_age = max_age
         self.max_tiredness = max_tiredness
-        self.age = 0
-        self.tiredness = 0
-        self.interest = 0
         self.alpha = alpha
         self.beta = beta
+        self.age = 0
+        self.interest = 0
 
     def __call__(self, graph):
         self.travel(graph)
