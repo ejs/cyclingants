@@ -16,13 +16,13 @@ class ACOEdge:
 
 class Swarm:
     def __init__(self, size, max_age, max_tiredness, alpha, beta, evaporation, Ant):
-       self.max_age = max_age
-       self.max_tiredness = max_tiredness
-       self.size = size
-       self.alpha = alpha
-       self.beta = beta
-       self.Ant = Ant
-       self.evaporation = evaporation
+        self.max_age = max_age
+        self.max_tiredness = max_tiredness
+        self.size = size
+        self.alpha = alpha
+        self.beta = beta
+        self.Ant = Ant
+        self.evaporation = evaporation
 
     def setup_graph(self, graph):
         return graph.transform(t_edge=ACOEdge)
