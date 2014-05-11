@@ -67,7 +67,7 @@ class BasicAnt:
 
     def __call__(self, graph):
         self.travel(graph)
-        self.simplify_journy()
+        self.moves = self.simplify_journy(self.moves)
         self.age = sum(graph.get_edges(a, b)[0].cost_out for a, b in self)
         self.interest = sum(graph.get_edges(a, b)[0].interest+graph[a].interest for a, b in self)
 
@@ -89,13 +89,12 @@ class BasicAnt:
         choice = biased_random(starmap(self.evaluate_edge, valid_choices))
         return valid_choices[choice]
 
-    def simplify_journy(self):
-        node_visits = Counter(self.moves)
+    def simplify_journy(self, moves):
+        node_visits = Counter(moves)
         while node_visits.most_common(1)[0][1] > 1:
-            # I'm not sure how this can need doing more than once but apparently it can
             skipping_till = None
             loopless = []
-            for n in self.moves:
+            for n in moves:
                 if not skipping_till:
                     if node_visits[n] > 1:
                         skipping_till = n
@@ -108,8 +107,9 @@ class BasicAnt:
                         node_visits[n] -= 2
                     else:
                         node_visits[n] -= 1
-            self.moves = loopless
-            node_visits = Counter(self.moves)
+            moves = loopless
+            node_visits = Counter(moves)
+        return moves
 
     def __iter__(self):
         for a, b in zip(self.moves, self.moves[1:]):
