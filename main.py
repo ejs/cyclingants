@@ -92,7 +92,7 @@ if __name__ == '__main__':
     config = docopt(__doc__, version="Cycling Ants 0.1")
     if config['osm']:
         osmtogpx(config)
-    elif config['makepickle' ]:
+    elif config['makepickle']:
         osmtopickle(config)
     elif config['usepickle']:
         pickletogpx(config)

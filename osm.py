@@ -51,9 +51,9 @@ class Node:
             self.rest = True
         self.way = travelable_route(None, tags)
 
-    def cost_to(self, next_node):
+    def cost_to(self, node):
         if next_node:
-            return distance_between(self.lat, self.lon, next_node.lat, next_node.lon)
+            return distance_between(self.lat, self.lon, node.lat, node.lon)
         else:
             return None
 
@@ -205,9 +205,8 @@ class OSMHandler(ContentHandler):
             if closest:
                 self.db.add_flags(closest, interest, rest)
                 hits += 1
-            self.count += 1
             count += 1
-            if not self.count % 1000:
+            if not count % 1000:
                 print(count, 'haloing', time()-self.start)
         print("Done Haloing, matched ", hits/count, " % ", time() - self.start)
         intersections = set(self.db.load_intersections())

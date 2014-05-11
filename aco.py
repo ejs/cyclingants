@@ -5,7 +5,7 @@ from itertools import accumulate, starmap
 from random import choice, random
 
 
-class ACOEdge:
+class ACOWrapper:
     def __init__(self, wraps):
         self.pheromones = 1
         self.wraps = wraps
@@ -25,7 +25,7 @@ class Swarm:
         self.evaporation = evaporation
 
     def setup_graph(self, graph):
-        return graph.transform(t_edge=ACOEdge)
+        return graph.transform(t_edge=ACOWrapper)
 
     def run_generation(self, graph, starting_points):
         for _ in range(self.size):

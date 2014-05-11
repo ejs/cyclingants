@@ -25,7 +25,7 @@ class TrackNodeVisits(StubAnaliser):
         return self.nodes_visited
 
     def __str__(self):
-     return "{} visited out of {}".format(sum(1 for n in self if self[n]), len(self))
+        return "{} visited out of {}".format(sum(1 for n in self if self[n]), len(self))
 
     def __iter__(self):
         return iter(self.nodes_visited)

@@ -2,7 +2,6 @@ from datetime import datetime
 from gpxpy import gpx
 
 
-
 class GPXOutput:
     def __init__(self):
         self.store = gpx.GPX()
