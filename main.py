@@ -5,7 +5,7 @@
         main.py makepickle <osmfile> <picklefile>
         main.py usepickle <picklefile> [<gpxfile>]
 """
-from aco import BasicAnt, ACOEdge, Swarm
+from aco import BasicAnt, Swarm
 import analysis
 from display import GPXOutput
 import osm
@@ -26,14 +26,6 @@ def most_marked_route(graph, start, max_distance):
             break
         node = edge[0]
         distance += edge[1].cost
-
-
-def osm_graph_to_aco_graph(graph):
-    def transform_edge(edge):
-        return ACOEdge(edge.cost_out, edge.interest, edge.rest)
-
-    g = graph.transform(t_edge=transform_edge)
-    return g
 
 
 def set_up_analyisis(graph):
@@ -63,9 +55,8 @@ def display(filename, graph, start, distance):
     sink.save_to_file(filename)
 
 
-def graph_to_gpx(osmgraph, config):
+def graph_to_gpx(graph, config):
     max_distance = 200
-    graph = osm_graph_to_aco_graph(osmgraph)
     starting_points = graph.find_most_connected_nodes()
     print("start", starting_points)
     evaluation = set_up_analyisis(graph)
@@ -77,7 +68,7 @@ def graph_to_gpx(osmgraph, config):
     else:
         display_analysis(evaluation)
         if config['<gpxfile>']:
-            display(config['<gpxfile>'], graph, starting_points[0], distance=max_distance)
+            display(config['<gpxfile>'], result, starting_points[0], distance=max_distance)
 
 
 def osmtogpx(config):

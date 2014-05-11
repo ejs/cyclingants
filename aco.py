@@ -22,6 +22,13 @@ class Swarm:
        self.Ant = Ant
        self.evaporation = evaporation
 
+    def setup_graph(self, graph):
+        def transform_edge(edge):
+            return ACOEdge(edge.cost_out, edge.interest, edge.rest)
+
+        g = graph.transform(t_edge=transform_edge)
+        return g
+
     def run_generation(self, graph, starting_points):
         for _ in range(self.size):
             ant = self.Ant(choice(starting_points), self.max_age, self.max_tiredness, self.alpha, self.beta)
@@ -29,6 +36,7 @@ class Swarm:
             yield ant
 
     def __call__(self, graph, starting_points, rounds, *analytics):
+        graph = self.setup_graph(graph)
         for i in range(rounds):
             ants = list(self.run_generation(graph, starting_points))
             self.deposit(graph, ants)

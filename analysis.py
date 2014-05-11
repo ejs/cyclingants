@@ -82,4 +82,4 @@ class GraphOverview(StubAnaliser):
         print("Interesting edges", sum(1 for _, _, e in graph.get_edges() if e.interest))
         print("Interesting nodes", sum(1 for n in graph if graph.get_node(n).interest))
         print("Connected components", graph.connected_components())
-        print("Longest edge", max(e.cost for _, _, e in graph.get_edges()))
+        print("Longest edge", max(e.cost_out for _, _, e in graph.get_edges()))
