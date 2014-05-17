@@ -109,34 +109,41 @@ class TrackNodeVisits(StubAnaliser):
         return "{} visited out of {}".format(visited, total)
 
 
-class PheromoneConcentration(StubAnaliser):
-    """ Track the global amount of pheromone on the map.
+class StatisticalAnalyser(StubAnaliser):
+    """ Report about the quantity of something every generation
 
         Reports
+            Minimum single value
+            Average value
+            Maximum single value
+    """
+    def row_headers(self):
+        return ["Min "+self.name, "Average "+self.name, "Max "+self.name]
+
+    def examine(self, ants, graph):
+        raise NotImplimentedError()
+
+    def __call__(self, graph, gen, ants):
+        mi = min(self.examine(ants, graph))
+        a = sum(self.examine(ants, graph))/sum(1 for _ in self.examine(ants, graph))
+        m = max(self.examine(ants, graph))
+        print("Average "+self.name, a)
+        return [mi, a, m]
+
+
+class PheromoneConcentration(StatisticalAnalyser):
+    """ Report on the global amount of pheromone on the map.
+
+        Reports
+            Minimum single concentration
             Average level
             Maximum single concentration
     """
-    def __init__(self, graph):
-        self.total = 0
-        self.turns = 0
+    name = "phremones"
 
-    def row_headers(self):
-        return ["Average pheromones", "Max Pheromones"]
-
-    def __call__(self, graph, gen, ants):
-        self.turns += 1
-        self.total += sum(e.pheromones for _, _, e in graph.get_edges())/sum(1 for _ in graph.get_edges())
-        a = sum(e.pheromones for _, _, e in graph.get_edges())/sum(1 for e in graph.get_edges())
-        m =max(e.pheromones for _, _, e in graph.get_edges())
-        print("Average pheromones", a)
-        print("Max pheromones", m)
-        return [a, m]
-
-    def result(self):
-        return self.total/self.turns
-
-    def __str__(self):
-        return "Average pheromone concentration {}".format(self.result())
+    def examine(self, ants, graph):
+        for _, _, e in graph.get_edges():
+            yield e.pheromones
 
 
 class Printer(StubAnaliser):
@@ -147,43 +154,34 @@ class Printer(StubAnaliser):
         return []
 
 
-class TrackInterest(StubAnaliser):
+class TrackInterest(StatisticalAnalyser):
     """ Reports on the quality of routes seached this generation
 
         Reports
+            minimum interest of all routes
             average interest of all routes
             Maximum interest of any route
     """
-    def row_headers(self):
-        return ['average interest', 'max interest']
+    name = "interest"
 
-    def __call__(self, graph, gen, ants):
-        av = sum(a.interest for a in ants)/len(ants)
-        m = max(a.interest for a in ants)
-        print("average interest", av)
-        print("max interest", m)
-        return [av, m]
+    def examine(self, ants, graph):
+        for a in ants:
+            yield a.interest
 
 
-class Distance(StubAnaliser):
+class Distance(StatisticalAnalyser):
     """ Reports on the length of routes seached this generation
 
         Reports
+            minimum length of any route
             average length of all routes
-            total distance traveled
             Maximum length of any route
     """
-    def row_headers(self):
-        return ["longest distance", "total distance", "average distance"]
+    name = "distance"
 
-    def __call__(self, graph, gen, ants):
-        l = max(a.age for a in ants)
-        t = sum(a.age for a in ants)
-        a = sum(a.age for a in ants)/len(ants)
-        print("longest distance", l)
-        print("total distance", t)
-        print("average distance", a)
-        return [l, t, a]
+    def examine(self, ants, graph):
+        for a in ants:
+            yield a.age
 
 
 def GraphOverview(graph):
