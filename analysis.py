@@ -77,12 +77,11 @@ class Distance(StubAnaliser):
         print("average distance", sum(a.age for a in ants)/len(ants))
 
 
-class GraphOverview(StubAnaliser):
-    def __init__(self, graph):
-        print(graph)
-        print("Rest edges", sum(1 for _, _, e in graph.get_edges() if e.rest))
-        print("Rest nodes", sum(1 for n in graph if graph.get_node(n).rest))
-        print("Interesting edges", sum(1 for _, _, e in graph.get_edges() if e.interest))
-        print("Interesting nodes", sum(1 for n in graph if graph.get_node(n).interest))
-        print("Connected components", graph.connected_components())
-        print("Longest edge", max(e.cost_out for _, _, e in graph.get_edges()))
+def GraphOverview(graph):
+    print(graph)
+    print("Rest edges", sum(1 for _, _, e in graph.get_edges() if e.rest))
+    print("Rest nodes", sum(1 for n in graph if graph.get_node(n).rest))
+    print("Interesting edges", sum(1 for _, _, e in graph.get_edges() if e.interest))
+    print("Interesting nodes", sum(1 for n in graph if graph.get_node(n).interest))
+    print("Connected components", graph.connected_components())
+    print("Longest edge", max(e.cost_out for _, _, e in graph.get_edges()))

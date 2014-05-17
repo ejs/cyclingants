@@ -44,12 +44,13 @@ def most_marked_route(graph, start, max_distance):
 
 
 def set_up_analyisis(graph, config):
-    return [analysis.GraphOverview(graph),
-            analysis.Printer(graph),
-            analysis.TrackNodeVisits(graph),
-            analysis.PheromoneConcentration(graph),
-            analysis.TrackInterest(graph),
-            analysis.Distance(graph)]
+    analysers = [analysis.GraphOverview,
+            analysis.Printer,
+            analysis.TrackNodeVisits,
+            analysis.PheromoneConcentration,
+            analysis.TrackInterest,
+            analysis.Distance]
+    return [an for an in (a(graph) for a in analysers) if a is not None]
 
 
 def display_analysis(analysis):
