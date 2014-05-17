@@ -52,7 +52,7 @@ class Node:
         self.way = travelable_route(None, tags)
 
     def cost_to(self, node):
-        if next_node:
+        if node:
             return distance_between(self.lat, self.lon, node.lat, node.lon)
         else:
             return None

@@ -22,17 +22,16 @@ class Graph:
         if nid in self.node_links:
             del self.node_links[nid]
         for edges in self.node_links.values():
-            if nid in edges:
-                del edges[nid]
+            edges.pop(nid, None)
 
     def __str__(self):
-        return "Graph with {} nodes and {} edges".format(len(self), sum(len(self.get_edges(n)) for n in self))
+        return "Graph with {} nodes and {} edges".format(len(self), len(self.get_edges()))
 
     def __len__(self):
         return len(self.node_info)
 
     def __iter__(self):
-        return iter(self.node_links)
+        return iter(self.node_info)
 
     def __getitem__(self, nodeid):
         return self.node_info[nodeid]
