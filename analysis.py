@@ -5,6 +5,9 @@ class StubAnaliser:
     def generation(self, graph, gen, ants):
         pass
 
+    def __call__(self, graph, gen, ants):
+        self.generation(graph, gen, ants)
+
     def result(self):
         return None
 

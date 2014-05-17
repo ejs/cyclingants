@@ -40,7 +40,7 @@ class Swarm:
             self.deposit(graph, ants)
             self.evaporate(graph)
             for an in analytics:
-                an.generation(graph, i, ants)
+                an(graph, i, ants)
         return graph
 
     def deposit(self, graph, ants):
