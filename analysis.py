@@ -80,6 +80,7 @@ class CSVWrapper(StubAnaliser):
 class TrackNodeVisits(StubAnaliser):
     """ Tracks and reports
 
+            The number of nodes that were visited this generation
             The number of nodes that have ever been visited
             The total number of nodes in the graph (for context)
     """
@@ -87,15 +88,17 @@ class TrackNodeVisits(StubAnaliser):
         self.nodes_visited = {nid:0 for nid in graph}
 
     def row_headers(self):
-        return ["Nodes visited", "Total Nodes"]
+        return ["Nodes ever visited", "Nodes visited this time", "Total Nodes"]
 
     def __call__(self, graph, gen, ants):
+        gen_visits = set()
         for a in ants:
             for n in a.moves:
                 self.nodes_visited[n] += 1
+                gen_visits.add(n)
         visited = sum(1 for n, v in self.nodes_visited.items() if v)
         total = len(self.nodes_visited)
-        return [visited, total]
+        return [visited, len(gen_visits), total]
 
     def result(self):
         return self.nodes_visited
