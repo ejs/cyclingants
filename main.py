@@ -30,6 +30,11 @@ import waysdb
 
 
 def most_marked_route(graph, start, max_distance):
+    """ Build a route by following the strongest trail from the current location
+
+        Total route length is limited by max_distance
+        Nodes are not revisited
+    """
     visited = set()
     distance = 0
     node = start
@@ -46,6 +51,7 @@ def most_marked_route(graph, start, max_distance):
 
 
 def set_up_analyisis(graph, config):
+    """ Create analysers and if set in config wrap in a CSVWrapper"""
     classes = [analysis.GraphOverview,
             analysis.Printer,
             analysis.TrackNodeVisits,
@@ -60,6 +66,7 @@ def set_up_analyisis(graph, config):
 
 
 def display_analysis(analysis):
+    """ Print any final results of the analysis objects"""
     if analysis:
         print()
         for a in analysis:
@@ -71,12 +78,14 @@ def display_analysis(analysis):
 
 
 def display(filename, graph, start, distance):
+    """ Draw the most marked trail as a gpx track """
     sink = GPXOutput()
     sink.add_track([graph.get_node(n).position for n in most_marked_route(graph, start, distance)])
     sink.save_to_file(filename)
 
 
 def build_swarm_from_config(config):
+    """ Configure a swam to perform ACO using settings from the config"""
     size = int(config['--size'])
     max_distance = int(config['--max'])
     rest = int(config['--rest'])
@@ -87,6 +96,7 @@ def build_swarm_from_config(config):
 
 
 def graph_to_gpx(graph, config):
+    """ Run and analyse an ACO search using parameters provided by config """
     max_distance = int(config['--max'])
     if config['geo']:
         starting_points = [(float(config['<lat>']), float(config['<lon>']))]
@@ -107,17 +117,20 @@ def graph_to_gpx(graph, config):
 
 
 def osmtogpx(config):
+    """ Perform an ACO search on OSM data to generate a GPX track"""
     osmgraph = osm.load_graph(config['<osmfile>'], float(config['--halo']))
     graph_to_gpx(osmgraph, config)
 
 
 def osmtopickle(config):
+    """ Load an OSM file and save the results as a pickle for future use"""
     osmgraph = osm.load_graph(config['<osmfile>'], float(config['--halo']))
     if config['<picklefile>']:
         waysdb.store_graph(osmgraph, config['<picklefile>'])
 
 
 def pickletogpx(config):
+    """ Perform an ACO search over an existing graph to generate a gpx track"""
     osmgraph = waysdb.load_graph(config['<picklefile>'])
     graph_to_gpx(osmgraph, config)
 
