@@ -16,6 +16,8 @@
     -e <evap>, --evaporation <evap>     Evaporation [default: 0.75]
 
     --halo <range>                      How far to project interesting points on to routes [default: 0.002]
+
+    --analysisfile <file>               Where to store a CSV summary of what happened
 """
 
 __version__ = "0.1"
@@ -44,13 +46,17 @@ def most_marked_route(graph, start, max_distance):
 
 
 def set_up_analyisis(graph, config):
-    analysers = [analysis.GraphOverview,
+    classes = [analysis.GraphOverview,
             analysis.Printer,
             analysis.TrackNodeVisits,
             analysis.PheromoneConcentration,
             analysis.TrackInterest,
             analysis.Distance]
-    return [an for an in (a(graph) for a in analysers) if a is not None]
+    analysers = [an for an in (a(graph) for a in classes) if an is not None]
+    if analysers and config['--analysisfile']:
+        return [analysis.CSVWrapper(config['--analysisfile'], analysers)]
+    else:
+        return analysers
 
 
 def display_analysis(analysis):
@@ -60,8 +66,8 @@ def display_analysis(analysis):
             if a:
                 try:
                     print("{}".format(a))
-                except:
-                    pass
+                except Exception as e:
+                    print(e)
 
 
 def display(filename, graph, start, distance):
