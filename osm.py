@@ -123,6 +123,13 @@ class NodeDB:
         dbc.execute('UPDATE nodes SET rest=?, interest=? WHERE id=?', (newrest, newinterest, nodeid))
         self.db.commit()
 
+    def close(self):
+        dbc = self.db.cursor()
+        dbc.execute("DROP TABLE nodes")
+        self.db.commit()
+        self.db.close()
+        self.db = None
+
 
 class RouteIntersection:
     def __init__(self, node):
@@ -198,6 +205,14 @@ class OSMHandler(ContentHandler):
 
     def endDocument(self):
         print("Done loading, starting processing", time()-self.start)
+        self.halo_interesting_points()
+        self.build_graph()
+        self.db.close()
+        self.db = None
+        self.improve_graph()
+        print("Done processing", time() - self.start)
+
+    def halo_interesting_points(self):
         count, hits = 0, 0
         box_size = 0.002
         for lat, lon, interest, rest in self.db.load_intersting_non_route():
@@ -209,14 +224,26 @@ class OSMHandler(ContentHandler):
             if not count % 1000:
                 print(count, 'haloing', time()-self.start)
         print("Done Haloing, matched ", hits/count, " % ", time() - self.start)
+
+    def build_graph(self):
         intersections = set(self.db.load_intersections())
         for n in intersections:
             self.graph.set_node(n, RouteIntersection(self.db.get_node(n)))
         for way in self.ways:
             for a, edge, b in nodes_to_edges(intersections, map(self.db.get_node, way['nodes'])):
                 self.graph.add_edge(a, b, RouteEdge(edge))
-        self.graph.trim()
-        print("Done processing", time() - self.start)
+        print("Done coverting to graph", time() - self.start)
+
+    def improve_graph(self):
+        print("Cleaning graph")
+        def combine_edges(e1, n, e2):
+            r = RouteEdge([])
+            r.interest = e1.interest + n.interest + e2.interest
+            r.rest = e1.rest or n.rest or e2.rest
+            r.cost_out = e1.cost_out + e2.cost_out
+            r.nid = e1.nid[:] + [n.nid] + e2.nid[:]
+            return r
+        self.graph.simplify(combine_edges)
 
 
 def nodes_to_edges(intersections, nodes):

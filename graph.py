@@ -46,56 +46,78 @@ class Graph:
             raise KeyError()
         if tid and tid not in self.node_info:
             raise KeyError()
-        if tid:
+        if tid and fid:
             return self.node_links[fid][tid]
+        elif tid:
+            return [(nid, e) for nid, es in self.node_links.items() for e in es[tid]]
         elif fid:
             return [(nid, e) for nid, es in self.node_links[fid].items() for e in es]
         else:
             return [(f, nid, e) for f in self for nid, es in self.node_links[f].items() for e in es]
 
-    def clean(self):
-        for n in list(self):
-            if n not in self.node_links:
-                if not any(self.get_edges(nd, n) for nd in list(self)):
-                    self.del_node(n)
+    def remove_edges(self, fid, tid):
+        try:
+            del self.node_links[fid][tid]
+        except KeyError:
+            pass
 
-    def trim(self):
-        # N.B. Handle nodes which are one directional e.g. a -> b -> c
-        # currently b looks like it can be trimmed out
-        while any(sum(len(b) for b in a.values()) == 1 for a in self.node_links.values()):
-            # trim back all dead ends
-            for nid in list(self.node_links):
-                edges = self.get_edges(nid)
-                if len(edges) == 1:
-                    self.del_node(nid)
-        self.clean()
+    def remove_dead_ends(self):
+        flag = False
+        for node in list(self):
+            if not self.node_links.get(node) or not self.get_edges(None, node):
+                flag = True
+                self.del_node(node)
+        return flag
 
-    def compact(self, combiner=None):
-        """ This take a function that expects to recieve
-            a : the edge from A to the node about to be removed
-            b : information about the node about to be removed
-            c : the edge from the node about to be removed to B
+    def remove_fake_choices(self, combiner):
+        flag = False
+        for node in list(self):
+            for to, edge in self.get_edges(node):
+                options = set(n for n, _ in self.get_edges(to) if n != node)
+                if len(options) == 0:
+                    self.remove_edges(node, to)
+                    flag = True
+                elif len(options) == 1:
+                    flag = True
+                    for end, edge2 in self.get_edges(to):
+                        if end != node:
+                            self.add_edge(node, end, combiner(edge, self[to], edge2))
+                    self.remove_edges(node, to)
+        return flag
 
-            and returns the new edge A, B
+    def _spot_loop(self, start, step, *old):
+        options = set(n for n, _ in self.get_edges(step) if n != start)
+        if len(options) == 1:
+            choice = options.pop()
+            if choice in old:
+                print("Loop found", old, start, step)
+                return True
+            return self._spot_loop(step, choice, start, *old)
+        if 1 < len(options):
+            return False
+        return True
 
-            Currently assumes that edges in the road are always paired to make
-            effectivly bi-directional links.
-        """
-        if not combiner:
-            combiner = lambda a, n, b: a
-        self.trim()
+    def break_tight_loops(self):
+        flag = False
+        for node in list(self):
+            for to in set(n for n, _ in self.get_edges(node)):
+                options = set(n for n, _ in self.get_edges(to) if n != node)
+                if len(options) == 1 and self._spot_loop(node, to):
+                    self.remove_edges(node, to)
+                    print("Removed Loop", node, to)
+                    flag = True
+        return flag
+
+    def simplify(self, combiner=None):
+        combiner = combiner if combiner else lambda a, b, c: a
         flag = True
         while flag:
+            print("Cleaning", self)
             flag = False
-            for nid in list(self):
-                nodes = list(self.node_links[nid])
-                edges = [self.node_links[nid][n] for n in nodes]
-                if [len(e) for e in edges] == [1, 1]:
-                    flag = True
-                    fid, tid = nodes
-                    self.add_edge(fid, tid, combiner(self.get_edges(fid, nid)[0], self.get_node(nid), self.get_edges(nid, tid)[0]))
-                    self.add_edge(tid, fid, combiner(self.get_edges(tid, nid)[0], self.get_node(nid), self.get_edges(fid, tid)[0]))
-                    self.del_node(nid)
+            #flag = flag or self.remove_fake_choices(combiner)
+            flag = flag or self.break_tight_loops()
+            flag = flag or self.remove_dead_ends()
+        print("Cleaned", self)
 
     def find_most_connected_nodes(self):
         most_connected, starting_points = 0, []

@@ -75,15 +75,6 @@ class TestGraph(unittest.TestCase):
         self.assertEqual(len(g), 1)
         self.assertEqual(len(g.get_edges(1)), 0)
 
-    def test_clean_removes_node_without_links(self):
-        g = graph.Graph()
-        g.set_node(1, (2, 3))
-        g.set_node(4, (5, 6))
-        g.set_node(7, (8, 9))
-        g.add_edge(1, 4, (10, 11))
-        g.clean()
-        self.assertEqual(len(g), 2)
-
     def build_complex_graph(self):
         g = graph.Graph()
         g.set_node("n1", (0, 1))
@@ -135,20 +126,11 @@ class TestGraph(unittest.TestCase):
         g.add_edge("n12", "n10", (12, 10))
         return g
 
-    def test_clean_complex_graph(self):
+    def test_simplify_complex_graph(self):
         g = self.build_complex_graph()
-        g.clean()
-        self.assertEqual(len(g), 12)
-
-    def test_trim_graph(self):
-        g = self.build_complex_graph()
-        g.trim()
-        self.assertEqual(len(g), 8)
-
-    def test_compact_graph(self):
-        g = self.build_complex_graph()
-        g.compact()
-        self.assertEqual(len(g), 7)
+        g.simplify()
+        self.assertEqual(len(g), 5)
+        self.assertEqual(sum(1 for _ in g.get_edges()), 18)
 
     def test_most_connected_nodes(self):
         g = self.build_complex_graph()
