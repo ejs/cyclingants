@@ -2,11 +2,8 @@ class StubAnaliser:
     def __init__(self, graph):
         pass
 
-    def generation(self, graph, gen, ants):
-        pass
-
     def __call__(self, graph, gen, ants):
-        self.generation(graph, gen, ants)
+        pass
 
     def result(self):
         return None
@@ -22,7 +19,7 @@ class TrackNodeVisits(StubAnaliser):
     def __init__(self, graph):
         self.nodes_visited = {nid:0 for nid in graph}
 
-    def generation(self, graph, gen, ants):
+    def __call__(self, graph, gen, ants):
         for a in ants:
             for n in a.moves:
                 self.nodes_visited[n] += 1
@@ -48,7 +45,7 @@ class PheromoneConcentration(StubAnaliser):
         self.total = 0
         self.turns = 0
 
-    def generation(self, graph, gen, ants):
+    def __call__(self, graph, gen, ants):
         self.turns += 1
         self.total += sum(e.pheromones for _, _, e in graph.get_edges())/sum(1 for _ in graph.get_edges())
         print("Average pheromones", sum(e.pheromones for _, _, e in graph.get_edges())/sum(1 for e in graph.get_edges()))
@@ -62,19 +59,19 @@ class PheromoneConcentration(StubAnaliser):
 
 
 class Printer(StubAnaliser):
-    def generation(self, graph, gen, ants):
+    def __call__(self, graph, gen, ants):
         print()
         print("Generation", gen)
 
 
 class TrackInterest(StubAnaliser):
-    def generation(self, graph, gen, ants):
+    def __call__(self, graph, gen, ants):
         print("average interest", sum(a.interest for a in ants)/len(ants))
         print("max interest", max(a.interest for a in ants))
 
 
 class Distance(StubAnaliser):
-    def generation(self, graph, gen, ants):
+    def __call__(self, graph, gen, ants):
         print("longest distance", max(a.age for a in ants))
         print("total distance", sum(a.age for a in ants))
         print("average distance", sum(a.age for a in ants)/len(ants))
