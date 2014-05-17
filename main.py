@@ -1,9 +1,21 @@
 #! /usr/bin/python3
 """
     Usage:
-        main.py osm <osmfile> [<gpxfile>]
+        main.py (osm <osmfile> | pickle <picklefile>) [geo (<lat> <lon>)] [options] [<gpxfile>]
         main.py makepickle <osmfile> <picklefile>
-        main.py usepickle <picklefile> [<gpxfile>]
+        main.py -h | --help
+        main.py --version
+
+    -m <dist>, --max <dist>             Max distance [default: 300]
+    -g <gen>, --generations <ge>        Number of Generations [default: 20]
+    -s <size>, --size <size>            Swarm size [default: 50]
+    -r <rest>, --rest <rest>            Rest period [default: 100]
+
+    -a <alpha>, --alpha <alpha>         Alpha value for ACO [default: 1]
+    -b <beta>, --beta <beta>            Beta value for ACD [default: 1]
+    -e <evap>, --evaporation <evap>     Evaporation [default: 0.75]
+
+    --halo <range>                      How far to project interesting points on to routes [default: 0.002]
 """
 from aco import BasicAnt, Swarm
 import analysis
@@ -28,7 +40,7 @@ def most_marked_route(graph, start, max_distance):
         distance += edge[1].cost_out
 
 
-def set_up_analyisis(graph):
+def set_up_analyisis(graph, config):
     return [analysis.GraphOverview(graph),
             analysis.Printer(graph),
             analysis.TrackNodeVisits(graph),
@@ -54,14 +66,27 @@ def display(filename, graph, start, distance):
     sink.save_to_file(filename)
 
 
+def build_swarm_from_config(config):
+    size = int(config['--size'])
+    max_distance = int(config['--max'])
+    rest = int(config['--rest'])
+    alpha = float(config['--alpha'])
+    beta = float(config['--beta'])
+    evaporation = float(config['--evaporation'])
+    return Swarm(size, max_distance, rest, alpha, beta, evaporation, BasicAnt)
+
 def graph_to_gpx(graph, config):
-    max_distance = 200
-    starting_points = graph.find_most_connected_nodes()
+    max_distance = int(config['--max'])
+    if config['geo']:
+        starting_points = [(float(config['<lat>']), float(config['<lon>']))]
+    else:
+        starting_points = graph.find_most_connected_nodes()
     print("start", starting_points)
-    evaluation = set_up_analyisis(graph)
-    swarm = Swarm(100, max_distance, 100, 1, 2, 0.75, BasicAnt)
+    evaluation = set_up_analyisis(graph, config)
+    swarm = build_swarm_from_config(config)
+    generations = int(config['--generations'])
     try:
-        result = swarm(graph, starting_points, 20, *evaluation)
+        result = swarm(graph, starting_points, generations, *evaluation)
     except KeyboardInterrupt:
         pass
     else:
@@ -71,14 +96,14 @@ def graph_to_gpx(graph, config):
 
 
 def osmtogpx(config):
-    osmgraph = osm.load_graph(config['<osmfile>'])
+    osmgraph = osm.load_graph(config['<osmfile>'], float(config['--halo']))
     graph_to_gpx(osmgraph, config)
 
 
-def osmtopickle(config, picklefile):
-    osmgraph = osm.load_graph(config['<osmfile>'])
-    if picklefile:
-        waysdb.store_graph(osmgraph, picklefile)
+def osmtopickle(config):
+    osmgraph = osm.load_graph(config['<osmfile>'], float(config['--halo']))
+    if config['<picklefile>']:
+        waysdb.store_graph(osmgraph, config['<picklefile>'])
 
 
 def pickletogpx(config):
@@ -91,7 +116,7 @@ if __name__ == '__main__':
     config = docopt(__doc__, version="Cycling Ants 0.1")
     if config['osm']:
         osmtogpx(config)
+    elif config['pickle']:
+        pickletogpx(config)
     elif config['makepickle']:
         osmtopickle(config)
-    elif config['usepickle']:
-        pickletogpx(config)

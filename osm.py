@@ -1,6 +1,8 @@
 #! /usr/bin/python3
 """
-    Usage: osm.py <inputfile>
+    Usage: osm.py [-h <halo>] <inputfile>
+
+    -h, --halo <halo>         How far to project interesting points on to routes [default: 0.002]
 """
 from math import acos, sin, cos, radians
 from time import time
@@ -154,7 +156,7 @@ class RouteEdge:
 
 
 class OSMHandler(ContentHandler):
-    def __init__(self):
+    def __init__(self, box_size=0.002):
         self.node = None
         self.way = None
         self.ways = []
@@ -163,6 +165,7 @@ class OSMHandler(ContentHandler):
         self.graph = Graph()
         self.db = NodeDB(':memory:')
         self.count = 0
+        self.box_size = box_size
         self.start = time()
 
     def startElement(self, name, attributes):
@@ -214,9 +217,8 @@ class OSMHandler(ContentHandler):
 
     def halo_interesting_points(self):
         count, hits = 0, 0
-        box_size = 0.002
         for lat, lon, interest, rest in self.db.load_intersting_non_route():
-            closest, _ = self.db.load_closest_way(lat, lon, box_size)
+            closest, _ = self.db.load_closest_way(lat, lon, self.box_size)
             if closest:
                 self.db.add_flags(closest, interest, rest)
                 hits += 1
@@ -257,12 +259,12 @@ def nodes_to_edges(intersections, nodes):
             previous, edge = point.nid, [point]
 
 
-def load_graph(filename):
+def load_graph(filename, halo_range):
     with open(filename) as source:
         osmhandler = OSMHandler()
         parser = sax.make_parser()
         parser.setContentHandler(osmhandler)
-        parser.parse(source)
+        parser.parse(source, halo_range)
         graph = osmhandler.graph
         return graph
 
@@ -273,7 +275,7 @@ if __name__ == '__main__':
     osmhandler = OSMHandler()
     parser = sax.make_parser()
     parser.setContentHandler(osmhandler)
-    parser.parse(arguments['<inputfile>'])
+    parser.parse(arguments['<inputfile>'], float(arguments['--halo']))
     print("Way size {0:,d}kb".format(total_size(osmhandler.ways)//1024))
     print("Total ways", len(osmhandler.ways))
     print("Total graph nodes", len(osmhandler.graph))
