@@ -17,6 +17,9 @@
 
     --halo <range>                      How far to project interesting points on to routes [default: 0.002]
 """
+
+__version__ = "0.1"
+
 from aco import BasicAnt, Swarm
 import analysis
 from display import GPXOutput
@@ -75,6 +78,7 @@ def build_swarm_from_config(config):
     evaporation = float(config['--evaporation'])
     return Swarm(size, max_distance, rest, alpha, beta, evaporation, BasicAnt)
 
+
 def graph_to_gpx(graph, config):
     max_distance = int(config['--max'])
     if config['geo']:
@@ -113,7 +117,7 @@ def pickletogpx(config):
 
 if __name__ == '__main__':
     from docopt import docopt
-    config = docopt(__doc__, version="Cycling Ants 0.1")
+    config = docopt(__doc__, version="Cycling Ants "+__version__)
     if config['osm']:
         osmtogpx(config)
     elif config['pickle']:
