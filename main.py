@@ -3,8 +3,7 @@
     Usage:
         main.py (osm <osmfile> | pickle <picklefile>) [geo (<lat> <lon>)] [options] [<gpxfile>]
         main.py makepickle <osmfile> <picklefile>
-        main.py -h | --help
-        main.py --version
+        main.py -h | --help | --version
 
     -m <dist>, --max <dist>             Max distance [default: 300]
     -g <gen>, --generations <ge>        Number of Generations [default: 20]
