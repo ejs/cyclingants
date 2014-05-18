@@ -56,6 +56,7 @@ def set_up_analyisis(graph, config):
             analysis.TrackNodeVisits,
             analysis.PheromoneConcentration,
             analysis.TrackInterest,
+            analysis.StepsTaken,
             analysis.Distance]
     analysers = [an for an in (a(graph) for a in classes) if an is not None]
     if analysers and config['--analysisfile']:

@@ -184,6 +184,21 @@ class Distance(StatisticalAnalyser):
             yield a.age
 
 
+class StepsTaken(StatisticalAnalyser):
+    """ Reports on the length of routes (in edges) searched this generation
+
+        Reports
+            minimum length of any route
+            average length of all routes
+            Maximum length of any route
+    """
+    name = "steps"
+
+    def examine(self, ants, graph):
+        for a in ants:
+            yield len(a.moves)
+
+
 def GraphOverview(graph):
     """ Provide some basic information on the graph about to be searched"""
     print(graph)
