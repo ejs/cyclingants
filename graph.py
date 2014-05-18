@@ -90,7 +90,6 @@ class Graph:
         if len(options) == 1:
             choice = options.pop()
             if choice in old:
-                print("Loop found", old, start, step)
                 return True
             return self._spot_loop(step, choice, start, *old)
         if 1 < len(options):
@@ -104,7 +103,6 @@ class Graph:
                 options = set(n for n, _ in self.get_edges(to) if n != node)
                 if len(options) == 1 and self._spot_loop(node, to):
                     self.remove_edges(node, to)
-                    print("Removed Loop", node, to)
                     flag = True
         return flag
 
