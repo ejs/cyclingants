@@ -208,3 +208,21 @@ def GraphOverview(graph):
     print("Interesting nodes", sum(1 for n in graph if graph.get_node(n).interest))
     print("Connected components", graph.connected_components())
     print("Longest edge", max(e.cost_out for _, _, e in graph.get_edges()))
+
+
+class PreserveBest(StubAnaliser):
+    """ Remember the best routs found during this search
+
+        x   number of best ants to preserve every generation
+        y   number of best ant overall to preserve
+    """
+    def __init__(self, graph, x=3, y=3):
+        self.best = []
+        self.best_by_gen = []
+        self.x = x
+        self.y = x
+
+    def __call__(self, graph, gen, ants):
+        gen_best = sorted(ants, key=lambda b:b.evaluate_route())
+        self.best = sorted(self.best+gen_best, key=lambda b:b.evaluate_route())[-1*self.y:]
+        self.best_by_gen.append(gen_best[-1*self.x:])

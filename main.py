@@ -77,10 +77,10 @@ def display_analysis(analysis):
                     print(e)
 
 
-def display(filename, graph, start, distance):
+def display(filename, route):
     """ Draw the most marked trail as a gpx track """
     sink = GPXOutput()
-    sink.add_track([graph.get_node(n).position for n in most_marked_route(graph, start, distance)])
+    sink.add_track(route)
     sink.save_to_file(filename)
 
 
@@ -106,14 +106,15 @@ def graph_to_gpx(graph, config):
     evaluation = set_up_analyisis(graph, config)
     swarm = build_swarm_from_config(config)
     generations = int(config['--generations'])
+    spot_best = analysis.PreserveBest(graph)
     try:
-        result = swarm(graph, starting_points, generations, *evaluation)
+        result = swarm(graph, starting_points, generations, spot_best, *evaluation)
     except KeyboardInterrupt:
         pass
     else:
         display_analysis(evaluation)
         if config['<gpxfile>']:
-            display(config['<gpxfile>'], result, starting_points[0], distance=max_distance)
+            display(config['<gpxfile>'], spot_best.best[-1])
 
 
 def osmtogpx(config):
