@@ -263,10 +263,10 @@ def nodes_to_edges(intersections, nodes):
 
 def load_graph(filename, halo_range):
     with open(filename) as source:
-        osmhandler = OSMHandler()
+        osmhandler = OSMHandler(halo_range)
         parser = sax.make_parser()
         parser.setContentHandler(osmhandler)
-        parser.parse(source, halo_range)
+        parser.parse(source)
         graph = osmhandler.graph
         return graph
 
