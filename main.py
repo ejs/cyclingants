@@ -21,11 +21,12 @@
 
 __version__ = "0.1"
 
+import pickle
+
 from aco import BasicAnt, Swarm
 import analysis
 from display import GPXOutput
 import osm
-import waysdb
 
 
 def most_marked_route(graph, start, max_distance):
@@ -127,12 +128,14 @@ def osmtopickle(config):
     """ Load an OSM file and save the results as a pickle for future use"""
     osmgraph = osm.load_graph(config['<osmfile>'], float(config['--halo']))
     if config['<picklefile>']:
-        waysdb.store_graph(osmgraph, config['<picklefile>'])
+        with open(config['<picklefile>'], 'wb') as sink:
+            pickle.dump(osmgraph, sink)
 
 
 def pickletogpx(config):
     """ Perform an ACO search over an existing graph to generate a gpx track"""
-    osmgraph = waysdb.load_graph(config['<picklefile>'])
+    with open(config['<picklefile>'], 'rb') as source:
+        osmgraph = pickle.load(source)
     graph_to_gpx(osmgraph, config)
 
 
