@@ -139,7 +139,7 @@ class PheromoneConcentration(StatisticalAnalyser):
             Average level
             Maximum single concentration
     """
-    name = "phremones"
+    name = "pheromones"
 
     def examine(self, ants, graph):
         for _, _, e in graph.get_edges():
@@ -163,14 +163,14 @@ class TrackInterest(StatisticalAnalyser):
             Maximum interest of any route
     """
     name = "interest"
-
+    
     def examine(self, ants, graph):
         for a in ants:
             yield a.interest
 
 
 class Distance(StatisticalAnalyser):
-    """ Reports on the length of routes seached this generation
+    """ Reports on the length of routes (in km) searched this generation
 
         Reports
             minimum length of any route

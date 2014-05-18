@@ -26,12 +26,14 @@ def travelable_route(way, tags):
 
 
 def distance_between(alat, alon, blat, blon):
+    """ Convert a pair of lat lon positions into a distance in km """
     alat, alon = radians(90-alat), radians(alon)
     blat, blon = radians(90-blat), radians(blon)
     return 6373*acos(sin(alat)*sin(blat)*cos(alon-blon) + cos(alat)*cos(blat))
 
 
 class Node:
+    """ Description of a node loaded from an OSM file"""
     __slots__ = ["lat", "lon", "interest", "nid", "rest", "way"]
 
     def __init__(self, lat, lon, nid, interest=0, rest=False):

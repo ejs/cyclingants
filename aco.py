@@ -163,11 +163,11 @@ class BasicAnt:
             yield a, b
 
     def evaluate_route(self):
-        """ locally score this journy"""
+        """ locally score this journey"""
         return self.interest*(self.age/self.max_age)
 
     def evaluate_edge(self, next_id, next_node, edge):
-        """ Evaluate an edge using the formular
+        """ Evaluate an edge using the formula
 
             local_interst = 1+edge_interest+node_interest
             local_interest += 1 if either the edge or the node allow rest
